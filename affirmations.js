@@ -86,4 +86,69 @@ const AFFIRMATIONS = [
     category: "Core Beliefs",
     text: "I'm becoming everything I ever wanted to be."
   }
+,
+  {
+    category: "Night Affirmations",
+    text: "I release the tension I carried today."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I let go of what I cannot control."
+  },
+  {
+    category: "Night Affirmations",
+    text: "It's okay that some moments today were difficult."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I forgive myself for moments I felt off or overwhelmed."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am growing, and growth takes time."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am gentle with myself tonight."
+  },
+  {
+    category: "Night Affirmations",
+    text: "My nervous system is calming down."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I breathe out stress; I breathe in peace."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am safe in my body."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am becoming emotionally mature and grounded."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am proud of myself for trying, learning, and staying aware."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I allow myself deep rest and recovery."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I trust myself more every day."
+  },
+  {
+    category: "Night Affirmations",
+    text: "Tomorrow, I will show up stronger, calmer, and clearer."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I deserve peace, comfort, and connection."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am really grateful and thankful of the things and people in my life."
+  }
 ];
