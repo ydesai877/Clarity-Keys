@@ -1,0 +1,73 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="UTF-8" />
+<meta name="viewport" content="width=device-width, initial-scale=1, maximum-scale=1" />
+<meta name="theme-color" content="#7c6cf0" />
+<title>Clarity &amp; Keys — Affirmation Typing Practice</title>
+<link rel="icon" href="data:image/svg+xml,<svg xmlns=%22http://www.w3.org/2000/svg%22 viewBox=%220 0 100 100%22><text y=%22.9em%22 font-size=%2290%22>⌨️</text></svg>" />
+<link rel="stylesheet" href="styles.css" />
+</head>
+<body>
+  <div class="wrap">
+    <header class="app-header">
+      <h1>Clarity &amp; Keys</h1>
+      <p class="tagline">Type your affirmations. Build speed and accuracy at the same time.</p>
+    </header>
+
+    <section class="controls">
+      <label for="category-select" class="visually-hidden">Category</label>
+      <select id="category-select"></select>
+      <button id="next-btn" type="button">Next affirmation</button>
+      <button id="retry-btn" type="button">Retry</button>
+    </section>
+
+    <section class="stats-row" id="live-stats" aria-live="polite">
+      <div class="stat"><span class="stat-value" id="stat-wpm">0</span><span class="stat-label">WPM</span></div>
+      <div class="stat"><span class="stat-value" id="stat-accuracy">100%</span><span class="stat-label">Accuracy</span></div>
+      <div class="stat"><span class="stat-value" id="stat-time">0s</span><span class="stat-label">Time</span></div>
+    </section>
+
+    <main class="typing-card">
+      <p class="category-tag" id="category-tag">Morning Affirmation</p>
+      <div class="target-text" id="target-text" aria-hidden="true"></div>
+      <textarea
+        id="typing-input"
+        class="typing-input"
+        autocomplete="off"
+        autocorrect="off"
+        autocapitalize="off"
+        spellcheck="false"
+        rows="4"
+        placeholder="Tap here and start typing the text above…"
+      ></textarea>
+    </main>
+
+    <section class="result-card hidden" id="result-card">
+      <h2>Nicely typed.</h2>
+      <div class="result-grid">
+        <div><span id="result-wpm">0</span><small>WPM</small></div>
+        <div><span id="result-accuracy">100%</span><small>Accuracy</small></div>
+        <div><span id="result-time">0s</span><small>Time</small></div>
+      </div>
+      <button id="continue-btn" type="button">Continue</button>
+    </section>
+
+    <section class="best-stats" id="best-stats">
+      <h3>Your progress</h3>
+      <div class="best-grid">
+        <div><span id="best-wpm">—</span><small>Best WPM</small></div>
+        <div><span id="avg-accuracy">—</span><small>Avg accuracy</small></div>
+        <div><span id="sessions-count">0</span><small>Sessions</small></div>
+      </div>
+    </section>
+
+    <footer class="app-footer">
+      <p>Edit <code>affirmations.js</code> to change what you practice.</p>
+    </footer>
+  </div>
+
+  <script src="affirmations.js"></script>
+  <script src="app.js"></script>
+</body>
+</html>
