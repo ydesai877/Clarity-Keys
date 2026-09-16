@@ -150,14 +150,34 @@ const AFFIRMATIONS = [
   {
     category: "Night Affirmations",
     text: "I am really grateful and thankful of the things and people in my life."
-  }
+  },
 
-  {category: "Useful",
-  const text: "Love \n
-I am a loving soul... Different people, different nature... \n
-I understand them... I accept them as they are... I am compassionate... \n
-  I feel right... I behave right... always."
-  }
+  {
+    category: "Useful",
+    text: "Love \n I am a loving soul... Different people, different nature... \n I understand them... I accept them as they are... I am compassionate... \n  I feel right... I behave right... always."
+  }, 
+  {
+    category: "Useful",
+    text:"Purity \nI am a pure soul ... I need nothing from people ... I am a giver... I am selfless ... Everything I watch, read, listen, eat or drink is pure... Humility is my personality."
+  },
 
-
+  {
+    category: "Useful",
+    text:"Wisdom\nI am a wise soul ... I choose my karma carefully ... I decide my future ... every incident in my life is right... it is beneficial for me... I create a beautiful destiny."
+  },
+  
+  {
+    category: "Useful",
+    text:"Happiness\nI am a happy soul... I give my best in every instance... my happiness is untouched by the outcome... I achieve my goals with happiness... I am content always."
+  },
+    
+  {
+    category: "Useful",
+    text:"Power \n I am a powerful soul ... I am the master of my mind... I am the master of my sense organs... I am the master of my life... I can do anything I choose to do."
+  },
+  
+  { 
+    category: "Useful",
+    text:"Peace \n I am a peaceful soul... Irrespective of whatever the situation may be ... I remain calm, easy and peaceful... I always choose peace... I am stable in every situation... with every kind of behaviour."
+  } 
 ];
