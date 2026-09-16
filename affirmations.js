@@ -163,21 +163,41 @@ const AFFIRMATIONS = [
 
   {
     category: "Useful",
-    text:"Wisdom\nI am a wise soul ... I choose my karma carefully ... I decide my future ... every incident in my life is right... it is beneficial for me... I create a beautiful destiny."
+    text:"Wisdom \nI am a wise soul ... I choose my karma carefully ... I decide my future ... every incident in my life is right... it is beneficial for me... I create a beautiful destiny."
   },
   
   {
     category: "Useful",
-    text:"Happiness\nI am a happy soul... I give my best in every instance... my happiness is untouched by the outcome... I achieve my goals with happiness... I am content always."
+    text:"Happiness \nI am a happy soul... I give my best in every instance... my happiness is untouched by the outcome... I achieve my goals with happiness... I am content always."
   },
     
   {
     category: "Useful",
-    text:"Power \n I am a powerful soul ... I am the master of my mind... I am the master of my sense organs... I am the master of my life... I can do anything I choose to do."
+    text:"Power\n I am a powerful soul ... I am the master of my mind... I am the master of my sense organs... I am the master of my life... I can do anything I choose to do."
   },
   
   { 
     category: "Useful",
-    text:"Peace \n I am a peaceful soul... Irrespective of whatever the situation may be ... I remain calm, easy and peaceful... I always choose peace... I am stable in every situation... with every kind of behaviour."
-  } 
+    text:"Peace\n I am a peaceful soul... Irrespective of whatever the situation may be ... I remain calm, easy and peaceful... I always choose peace... I am stable in every situation... with every kind of behaviour."
+  }, 
+    {
+    category: "SICOA",
+    text: "I serve with accountability, I live up to commitments and own the results"
+  },
+  {
+    category: "SICOA",
+    text: "I inspire belonging, create an environment where people feel distinctly valued"
+  },
+  {
+    category: "SICOA",
+    text: "I champion empowerment, I show up, speak up and take initiative to solve issues."
+  },
+  {
+    category: "SICOA",
+    text: "I operate with excellence, i take pride in exceeding expectations to delight customers."
+  },
+  {
+    category: "SICOA",
+    text: "I act with integrity, I do the right thing to honor company and community."
+  },
 ];
