@@ -151,4 +151,13 @@ const AFFIRMATIONS = [
     category: "Night Affirmations",
     text: "I am really grateful and thankful of the things and people in my life."
   }
+
+  {category: "Useful",
+  const text: "Love \n
+I am a loving soul... Different people, different nature... \n
+I understand them... I accept them as they are... I am compassionate... \n
+  I feel right... I behave right... always."
+  }
+
+
 ];
