@@ -20,11 +20,7 @@ const AFFIRMATIONS = [
   },
   {
     category: "Morning Affirmation",
-    text: "What does the world have to offer me?"
-  },
-  {
-    category: "Morning Affirmation",
-    text: "It offers me raw material. It offers me facts, experiences, rejections, and victories. It is a mirror. It offers me the perfect testing ground to see my own mind clearly. I accept it all. I welcome the clean pain of effort, and I completely refuse the useless luxury of psychological suffering."
+    text: "What does the world have to offer me? \n It offers me raw material. It offers me facts, experiences, rejections, and victories. It is a mirror. It offers me the perfect testing ground to see my own mind clearly. I accept it all. I welcome the clean pain of effort, and I completely refuse the useless luxury of psychological suffering."
   },
   {
     category: "Morning Affirmation",
