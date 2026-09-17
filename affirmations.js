@@ -199,5 +199,9 @@ const AFFIRMATIONS = [
    {
     category: "Useful",
     text: "Hard things do not become easy because you force yourself to do them. They become easy because you designed the right conditions for your brain to cooperate."
-   }
+   },
+  {
+    category: "Useful",
+    text: "i believe in results that comes from my action"
+  }
 ];
