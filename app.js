@@ -223,6 +223,17 @@
     // treat it as a normal keystroke against the target text instead.
     if (e.key === "Enter") e.preventDefault();
   });
+  
+  // Once a round is finished and the score is showing, pressing Enter
+  // (from anywhere on the page, since the input is disabled at that point)
+  // jumps straight to the next affirmation.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (finished && !resultCard.classList.contains("hidden")) {
+      e.preventDefault();
+      resetRound(true);
+    }
+  });
 
   buildCategoryOptions();
   renderBestStats();
