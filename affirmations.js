@@ -200,4 +200,12 @@ const AFFIRMATIONS = [
     category: "SICOA",
     text: "I act with integrity, I do the right thing to honor company and community."
   },
+   {
+    category: "Useful",
+    text: "The secret of getting ahead is getting started. - Mark Twain"
+   },
+   {
+    category: "Useful",
+    text: "Hard things do not become easy because you force yourself to do them. They become easy because you designed the right conditions for your brain to cooperate."
+   };
 ];
