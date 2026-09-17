@@ -24,11 +24,7 @@ const AFFIRMATIONS = [
   },
   {
     category: "Morning Affirmation",
-    text: "What do I have to offer the world?"
-  },
-  {
-    category: "Morning Affirmation",
-    text: "I offer the world my presence. I offer my focused attention, my simple systems, and my undivided energy. I offer honest, unapologetic action."
+    text: "What do I have to offer the world? n\ I offer the world my presence. I offer my focused attention, my simple systems, and my undivided energy. I offer honest, unapologetic action."
   },
   {
     category: "Morning Affirmation",
