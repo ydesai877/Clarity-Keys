@@ -24,7 +24,7 @@
   const resultCard = document.getElementById("result-card");
   const continueBtn = document.getElementById("continue-btn");
 
-  const progressCard = document.getElementById("progress-card");
+  const progressChartWrap = document.getElementById("progress-chart-wrap");
   const progressChart = document.getElementById("progress-chart");
   const chartTooltip = document.getElementById("chart-tooltip");
   const progressStatsEl = document.getElementById("progress-stats");
@@ -165,11 +165,58 @@
       .map((s) => ({ ts: s.ts, wpm: s.wpm, accuracy: s.accuracy }));
   }
 
+  // Smooth curve that never swings above or below the real data points
+  // (monotone cubic interpolation, Fritsch–Carlson method).
+  function traceMonotoneCurve(ctx, pts) {
+    const n = pts.length;
+    const slopes = [];
+    for (let i = 0; i < n - 1; i++) {
+      const dx = pts[i + 1].x - pts[i].x;
+      slopes.push(dx === 0 ? 0 : (pts[i + 1].y - pts[i].y) / dx);
+    }
+    const tangents = new Array(n);
+    tangents[0] = slopes[0];
+    tangents[n - 1] = slopes[n - 2];
+    for (let i = 1; i < n - 1; i++) {
+      tangents[i] = slopes[i - 1] * slopes[i] <= 0 ? 0 : (slopes[i - 1] + slopes[i]) / 2;
+    }
+    for (let i = 0; i < n - 1; i++) {
+      if (slopes[i] === 0) {
+        tangents[i] = 0;
+        tangents[i + 1] = 0;
+        continue;
+      }
+      const a = tangents[i] / slopes[i];
+      const b = tangents[i + 1] / slopes[i];
+      const s = a * a + b * b;
+      if (s > 9) {
+        const tau = 3 / Math.sqrt(s);
+        tangents[i] = tau * a * slopes[i];
+        tangents[i + 1] = tau * b * slopes[i];
+      }
+    }
+    ctx.moveTo(pts[0].x, pts[0].y);
+    for (let i = 0; i < n - 1; i++) {
+      const p0 = pts[i];
+      const p1 = pts[i + 1];
+      const third = (p1.x - p0.x) / 3;
+      if (third === 0) {
+        ctx.lineTo(p1.x, p1.y);
+        continue;
+      }
+      ctx.bezierCurveTo(
+        p0.x + third, p0.y + tangents[i] * third,
+        p1.x - third, p1.y - tangents[i + 1] * third,
+        p1.x, p1.y
+      );
+    }
+  }
+
   function drawChart() {
     const ctx = progressChart.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    const width = progressCard.clientWidth;
-    const height = progressCard.clientHeight;
+    const width = progressChartWrap.clientWidth;
+    const height = progressChartWrap.clientHeight;
     progressChart.width = Math.max(1, Math.round(width * dpr));
     progressChart.height = Math.max(1, Math.round(height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -218,7 +265,21 @@
     const minWpm = Math.min(0, Math.min(...allWpm));
     const wpmRange = maxWpm - minWpm || 1;
 
+    // 1W: space attempts evenly in the order you did them. With a time
+    // axis, all of one day's attempts stack into a single vertical smear.
+    // 1M/1Q/1Y: one point per day, so a real time axis reads well.
+    const byAttempt = ui.range === "1w";
+    const attemptOrder = byAttempt
+      ? Array.from(new Set(activeSeries.flatMap((s) => s.points.map((p) => p.ts)))).sort((a, b) => a - b)
+      : [];
+    const attemptIndex = new Map(attemptOrder.map((ts, i) => [ts, i]));
+
     const xFor = (ts) => {
+      if (byAttempt) {
+        const n = attemptOrder.length;
+        if (n <= 1) return padL + plotW / 2;
+        return padL + (attemptIndex.get(ts) / (n - 1)) * plotW;
+      }
       const clamped = Math.min(now, Math.max(cutoff, ts));
       return padL + ((clamped - cutoff) / (now - cutoff || 1)) * plotW;
     };
@@ -242,12 +303,14 @@
       ctx.fillText(String(wpmVal), padL - 8, y);
     }
 
-    // Date labels at the start and end of the selected range.
+    // Date labels: range start and end, or first and last attempt for 1W.
+    const startLabelTs = byAttempt ? attemptOrder[0] : cutoff;
+    const endLabelTs = byAttempt ? attemptOrder[attemptOrder.length - 1] : now;
     ctx.textAlign = "left";
     ctx.textBaseline = "top";
-    ctx.fillText(dateLabel(cutoff), padL, height - padB + 6);
+    ctx.fillText(dateLabel(startLabelTs), padL, height - padB + 6);
     ctx.textAlign = "right";
-    ctx.fillText(dateLabel(now), padL + plotW, height - padB + 6);
+    ctx.fillText(dateLabel(endLabelTs), padL + plotW, height - padB + 6);
 
     // One smooth line per selected hand mode, plus a dot at each point.
     const seriesPixels = {};
@@ -265,15 +328,7 @@
         ctx.moveTo(pts[0].x - 6, pts[0].y);
         ctx.lineTo(pts[0].x + 6, pts[0].y);
       } else {
-        ctx.moveTo(pts[0].x, pts[0].y);
-        for (let i = 1; i < pts.length; i++) {
-          const prev = pts[i - 1];
-          const curr = pts[i];
-          const midX = (prev.x + curr.x) / 2;
-          const midY = (prev.y + curr.y) / 2;
-          ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
-        }
-        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+        traceMonotoneCurve(ctx, pts);
       }
       ctx.stroke();
 
