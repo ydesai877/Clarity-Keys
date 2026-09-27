@@ -12,6 +12,10 @@
 const AFFIRMATIONS = [
   {
     category: "Morning Affirmation",
+    text: "Making tiny, consistent improvements daily, just 1, compounds dramatically over time. Instead of seeking radical change, I focus on being slightly better today than yesterday."
+  },
+  {
+    category: "Morning Affirmation",
     text: "Today, I step into the world with adult clarity and a child's heart."
   },
   {
@@ -20,19 +24,11 @@ const AFFIRMATIONS = [
   },
   {
     category: "Morning Affirmation",
-    text: "What does the world have to offer me?"
+    text: "What does the world have to offer me? \n It offers me raw material. It offers me facts, experiences, rejections, and victories. It is a mirror. It offers me the perfect testing ground to see my own mind clearly. I accept it all. I welcome the clean pain of effort, and I completely refuse the useless luxury of psychological suffering."
   },
   {
     category: "Morning Affirmation",
-    text: "It offers me raw material. It offers me facts, experiences, rejections, and victories. It is a mirror. It offers me the perfect testing ground to see my own mind clearly. I accept it all. I welcome the clean pain of effort, and I completely refuse the useless luxury of psychological suffering."
-  },
-  {
-    category: "Morning Affirmation",
-    text: "What do I have to offer the world?"
-  },
-  {
-    category: "Morning Affirmation",
-    text: "I offer the world my presence. I offer my focused attention, my simple systems, and my undivided energy. I offer honest, unapologetic action."
+    text: "What do I have to offer the world? n\ I offer the world my presence. I offer my focused attention, my simple systems, and my undivided energy. I offer honest, unapologetic action."
   },
   {
     category: "Morning Affirmation",
@@ -85,5 +81,131 @@ const AFFIRMATIONS = [
   {
     category: "Core Beliefs",
     text: "I'm becoming everything I ever wanted to be."
+  }
+,
+  {
+    category: "Night Affirmations",
+    text: "I release the tension I carried today."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I let go of what I cannot control."
+  },
+  {
+    category: "Night Affirmations",
+    text: "It's okay that some moments today were difficult."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I forgive myself for moments I felt off or overwhelmed."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am growing, and growth takes time."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am gentle with myself tonight."
+  },
+  {
+    category: "Night Affirmations",
+    text: "My nervous system is calming down."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I breathe out stress; I breathe in peace."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am safe in my body."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am becoming emotionally mature and grounded."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am proud of myself for trying, learning, and staying aware."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I allow myself deep rest and recovery."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I trust myself more every day."
+  },
+  {
+    category: "Night Affirmations",
+    text: "Tomorrow, I will show up stronger, calmer, and clearer."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I deserve peace, comfort, and connection."
+  },
+  {
+    category: "Night Affirmations",
+    text: "I am really grateful and thankful of the things and people in my life."
+  },
+
+  {
+    category: "Useful",
+    text: "Love \n I am a loving soul... Different people, different nature... \n I understand them... I accept them as they are... I am compassionate... \n  I feel right... I behave right... always."
+  }, 
+  {
+    category: "Useful",
+    text:"Purity \nI am a pure soul ... I need nothing from people ... I am a giver... I am selfless ... Everything I watch, read, listen, eat or drink is pure... Humility is my personality."
+  },
+
+  {
+    category: "Useful",
+    text:"Wisdom \nI am a wise soul ... I choose my karma carefully ... I decide my future ... every incident in my life is right... it is beneficial for me... I create a beautiful destiny."
+  },
+  
+  {
+    category: "Useful",
+    text:"Happiness \nI am a happy soul... I give my best in every instance... my happiness is untouched by the outcome... I achieve my goals with happiness... I am content always."
+  },
+    
+  {
+    category: "Useful",
+    text:"Power\n I am a powerful soul ... I am the master of my mind... I am the master of my sense organs... I am the master of my life... I can do anything I choose to do."
+  },
+  
+  { 
+    category: "Useful",
+    text:"Peace\n I am a peaceful soul... Irrespective of whatever the situation may be ... I remain calm, easy and peaceful... I always choose peace... I am stable in every situation... with every kind of behaviour."
+  }, 
+    {
+    category: "SICOA",
+    text: "I serve with accountability, I live up to commitments and own the results"
+  },
+  {
+    category: "SICOA",
+    text: "I inspire belonging, create an environment where people feel distinctly valued"
+  },
+  {
+    category: "SICOA",
+    text: "I champion empowerment, I show up, speak up and take initiative to solve issues."
+  },
+  {
+    category: "SICOA",
+    text: "I operate with excellence, i take pride in exceeding expectations to delight customers."
+  },
+  {
+    category: "SICOA",
+    text: "I act with integrity, I do the right thing to honor company and community."
+  },
+   {
+    category: "Useful",
+    text: "The secret of getting ahead is getting started. - Mark Twain"
+   },
+   {
+    category: "Useful",
+    text: "Hard things do not become easy because you force yourself to do them. They become easy because you designed the right conditions for your brain to cooperate."
+   },
+  {
+    category: "Useful",
+    text: "i believe in results that comes from my action"
   }
 ];

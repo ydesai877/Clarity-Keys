@@ -12,6 +12,9 @@
   --pending: #b8b3cc;
   --border: #e4e0f5;
   --shadow: 0 10px 30px rgba(90, 70, 180, 0.08);
+  --chart-left: #4fa3d1;
+  --chart-both: #7c6cf0;
+  --chart-right: #e0946c;
 }
 
 @media (prefers-color-scheme: dark) {
@@ -29,6 +32,9 @@
     --pending: #4c4666;
     --border: #322c47;
     --shadow: 0 10px 30px rgba(0, 0, 0, 0.35);
+    --chart-left: #6cc6f0;
+    --chart-both: #9b8bff;
+    --chart-right: #f0b088;
   }
 }
 
@@ -102,6 +108,31 @@ button:active { transform: scale(0.97); }
 }
 #next-btn:hover { background: var(--accent-dark); }
 
+.hand-select {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.hand-btn {
+  border: none;
+  border-radius: 0;
+  background: var(--card-bg);
+  color: var(--text-soft);
+  font-weight: 600;
+  padding: 10px 14px;
+}
+
+.hand-btn + .hand-btn {
+  border-left: 1px solid var(--border);
+}
+
+.hand-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
 .stats-row {
   display: flex;
   justify-content: center;
@@ -124,7 +155,7 @@ button:active { transform: scale(0.97); }
   letter-spacing: 0.06em;
 }
 
-.typing-card, .result-card, .best-stats {
+.typing-card, .result-card, .progress-card {
   background: var(--card-bg);
   border-radius: 18px;
   box-shadow: var(--shadow);
@@ -186,20 +217,20 @@ button:active { transform: scale(0.97); }
 .result-card { text-align: center; }
 .result-card h2 { margin-top: 0; }
 
-.result-grid, .best-grid {
+.result-grid {
   display: flex;
   justify-content: center;
   gap: 32px;
   margin: 16px 0;
 }
 
-.result-grid span, .best-grid span {
+.result-grid span {
   display: block;
   font-size: 24px;
   font-weight: 700;
   color: var(--accent-dark);
 }
-.result-grid small, .best-grid small {
+.result-grid small {
   display: block;
   color: var(--text-soft);
   font-size: 12px;
@@ -207,13 +238,143 @@ button:active { transform: scale(0.97); }
   letter-spacing: 0.05em;
 }
 
-.best-stats h3 {
-  margin: 0 0 4px;
+.progress-card h3 {
+  margin: 0 0 12px;
   font-size: 14px;
   text-transform: uppercase;
   letter-spacing: 0.06em;
   color: var(--text-soft);
   text-align: center;
+}
+
+.progress-chart-wrap {
+  position: relative;
+  height: 220px;
+  border-radius: 14px;
+  overflow: hidden;
+  background: var(--bg-2);
+}
+
+#progress-chart {
+  position: absolute;
+  inset: 0;
+  width: 100%;
+  height: 100%;
+  opacity: 0.55;
+}
+
+.progress-stats {
+  position: relative;
+  z-index: 2;
+  height: 100%;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 10px;
+}
+
+.progress-stats.hidden-info { display: none; }
+
+.stats-table {
+  width: 100%;
+  max-width: 420px;
+  background: color-mix(in srgb, var(--card-bg) 78%, transparent);
+  border-radius: 12px;
+  padding: 10px 14px;
+  backdrop-filter: blur(2px);
+}
+
+.stats-table-row {
+  display: grid;
+  grid-template-columns: 1.3fr 1fr 1fr 1fr;
+  align-items: center;
+  gap: 6px;
+  padding: 6px 0;
+  font-size: 13px;
+}
+
+.stats-table-row.header {
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+  font-weight: 700;
+  border-bottom: 1px solid var(--border);
+  padding-bottom: 8px;
+}
+
+.stats-table-row span:not(:first-child) {
+  text-align: center;
+  font-weight: 700;
+  color: var(--accent-dark);
+}
+
+.stats-table-row.header span:not(:first-child) {
+  font-weight: 700;
+  color: var(--text-soft);
+}
+
+.stats-table-row .row-label {
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.progress-controls {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+  margin-top: 14px;
+}
+
+.ghost-btn {
+  font-size: 13px;
+  padding: 8px 12px;
+  background: transparent;
+}
+
+.range-toggle {
+  display: inline-flex;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  overflow: hidden;
+}
+
+.range-btn {
+  border: none;
+  border-radius: 0;
+  background: var(--card-bg);
+  color: var(--text-soft);
+  font-size: 13px;
+  padding: 8px 12px;
+}
+
+.range-btn + .range-btn { border-left: 1px solid var(--border); }
+
+.range-btn.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+.series-toggle {
+  display: flex;
+  gap: 12px;
+  font-size: 13px;
+  color: var(--text-soft);
+}
+
+.series-toggle label {
+  display: inline-flex;
+  align-items: center;
+  gap: 5px;
+  cursor: pointer;
+}
+
+.series-toggle input[type="checkbox"] {
+  accent-color: var(--accent);
+  width: 15px;
+  height: 15px;
 }
 
 .app-footer {
@@ -240,5 +401,8 @@ button:active { transform: scale(0.97); }
 
 @media (max-width: 420px) {
   .stats-row { gap: 18px; }
-  .result-grid, .best-grid { gap: 20px; }
+  .result-grid { gap: 20px; }
+  .stats-table-row { grid-template-columns: 1fr 1fr 1fr 1fr; font-size: 11px; }
+  .progress-controls { justify-content: center; text-align: center; }
+  .series-toggle { width: 100%; justify-content: center; }
 }

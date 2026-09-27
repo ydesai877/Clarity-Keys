@@ -18,6 +18,13 @@
     <section class="controls">
       <label for="category-select" class="visually-hidden">Category</label>
       <select id="category-select"></select>
+
+      <div class="hand-select" id="hand-select" role="group" aria-label="Typing hand">
+        <button type="button" class="hand-btn" data-hand="left">Left</button>
+        <button type="button" class="hand-btn" data-hand="both">Both</button>
+        <button type="button" class="hand-btn" data-hand="right">Right</button>
+      </div>
+
       <button id="next-btn" type="button">Next affirmation</button>
       <button id="retry-btn" type="button">Retry</button>
     </section>
@@ -53,12 +60,29 @@
       <button id="continue-btn" type="button">Continue</button>
     </section>
 
-    <section class="best-stats" id="best-stats">
+    <section class="progress-card" id="progress-card">
       <h3>Your progress</h3>
-      <div class="best-grid">
-        <div><span id="best-wpm">—</span><small>Best WPM</small></div>
-        <div><span id="avg-accuracy">—</span><small>Avg accuracy</small></div>
-        <div><span id="sessions-count">0</span><small>Sessions</small></div>
+
+      <div class="progress-chart-wrap" id="progress-chart-wrap">
+        <canvas id="progress-chart" aria-hidden="true"></canvas>
+        <div class="progress-stats" id="progress-stats"></div>
+      </div>
+
+      <div class="progress-controls">
+        <button type="button" id="toggle-stats-btn" class="ghost-btn" aria-pressed="false">Hide info</button>
+
+        <div class="range-toggle" id="range-toggle" role="group" aria-label="Chart time range">
+          <button type="button" class="range-btn" data-range="1w">1W</button>
+          <button type="button" class="range-btn" data-range="1m">1M</button>
+          <button type="button" class="range-btn" data-range="1q">1Q</button>
+          <button type="button" class="range-btn" data-range="1y">1Y</button>
+        </div>
+
+        <div class="series-toggle" id="series-toggle">
+          <label><input type="checkbox" data-series="left" /> LH</label>
+          <label><input type="checkbox" data-series="both" /> Both</label>
+          <label><input type="checkbox" data-series="right" /> RH</label>
+        </div>
       </div>
     </section>
 

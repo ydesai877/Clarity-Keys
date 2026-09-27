@@ -1,9 +1,14 @@
 (function () {
   "use strict";
 
-  const STORAGE_KEY = "clarity-keys-stats-v1";
+  const OLD_STORAGE_KEY = "clarity-keys-stats-v1";
+  const SESSIONS_KEY = "clarity-keys-sessions-v2";
+  const UI_KEY = "clarity-keys-ui-v1";
+  const HANDS = ["left", "both", "right"];
+  const RANGE_DAYS = { "1w": 7, "1m": 30, "1q": 91, "1y": 365 };
 
   const categorySelect = document.getElementById("category-select");
+  const handSelect = document.getElementById("hand-select");
   const nextBtn = document.getElementById("next-btn");
   const retryBtn = document.getElementById("retry-btn");
   const targetTextEl = document.getElementById("target-text");
@@ -20,9 +25,12 @@
   const resultTime = document.getElementById("result-time");
   const continueBtn = document.getElementById("continue-btn");
 
-  const bestWpmEl = document.getElementById("best-wpm");
-  const avgAccuracyEl = document.getElementById("avg-accuracy");
-  const sessionsCountEl = document.getElementById("sessions-count");
+  const progressChartWrap = document.getElementById("progress-chart-wrap");
+  const progressChart = document.getElementById("progress-chart");
+  const progressStatsEl = document.getElementById("progress-stats");
+  const toggleStatsBtn = document.getElementById("toggle-stats-btn");
+  const rangeToggle = document.getElementById("range-toggle");
+  const seriesToggle = document.getElementById("series-toggle");
 
   let currentEntry = null;
   let pool = [];
@@ -30,40 +38,174 @@
   let timerId = null;
   let errorPositions = new Set();
   let finished = false;
+  let currentHand = "both";
+  let sessions = [];
+  let ui = { hand: "both", range: "1m", hideStats: false, series: ["both"] };
 
-  function loadStats() {
+  function loadUi() {
     try {
-      const raw = localStorage.getItem(STORAGE_KEY);
-      if (!raw) return { sessions: 0, bestWpm: 0, accuracySum: 0 };
-      return JSON.parse(raw);
+      const raw = localStorage.getItem(UI_KEY);
+      if (!raw) return { hand: "both", range: "1m", hideStats: false, series: ["both"] };
+      const parsed = JSON.parse(raw);
+      return {
+        hand: HANDS.includes(parsed.hand) ? parsed.hand : "both",
+        range: RANGE_DAYS[parsed.range] ? parsed.range : "1m",
+        hideStats: !!parsed.hideStats,
+        series: Array.isArray(parsed.series) ? parsed.series.filter((s) => HANDS.includes(s)) : ["both"]
+      };
     } catch (e) {
-      return { sessions: 0, bestWpm: 0, accuracySum: 0 };
+      return { hand: "both", range: "1m", hideStats: false, series: ["both"] };
     }
   }
 
-  function saveStats(stats) {
+  function saveUi() {
     try {
-      localStorage.setItem(STORAGE_KEY, JSON.stringify(stats));
+      localStorage.setItem(UI_KEY, JSON.stringify(ui));
+    } catch (e) {
+      // localStorage unavailable — settings just won't persist this session.
+    }
+  }
+
+  function loadSessions() {
+    try {
+      const raw = localStorage.getItem(SESSIONS_KEY);
+      if (raw) return JSON.parse(raw);
+    } catch (e) {
+      // fall through to migration / empty
+    }
+    // Migrate the older single-number stats (pre hand-mode tracking), if present,
+    // into one seed "both" session so a returning user doesn't see progress vanish.
+    try {
+      const oldRaw = localStorage.getItem(OLD_STORAGE_KEY);
+      if (oldRaw) {
+        const old = JSON.parse(oldRaw);
+        if (old && old.sessions > 0) {
+          return [
+            {
+              mode: "both",
+              wpm: old.bestWpm || 0,
+              accuracy: Math.round((old.accuracySum || 0) / old.sessions),
+              time: 0,
+              ts: Date.now()
+            }
+          ];
+        }
+      }
+    } catch (e) {
+      // ignore
+    }
+    return [];
+  }
+
+  function saveSessions() {
+    try {
+      // Cap history so localStorage doesn't grow without bound.
+      if (sessions.length > 3000) sessions = sessions.slice(-3000);
+      localStorage.setItem(SESSIONS_KEY, JSON.stringify(sessions));
     } catch (e) {
       // localStorage unavailable — stats just won't persist this session.
     }
   }
 
-  function renderBestStats() {
-    const stats = loadStats();
-    bestWpmEl.textContent = stats.sessions > 0 ? stats.bestWpm : "—";
-    avgAccuracyEl.textContent =
-      stats.sessions > 0 ? Math.round(stats.accuracySum / stats.sessions) + "%" : "—";
-    sessionsCountEl.textContent = stats.sessions;
+  function aggregateFor(mode) {
+    const arr = sessions.filter((s) => s.mode === mode);
+    if (arr.length === 0) return { best: "—", avgWpm: "—", avgAcc: "—", count: 0 };
+    const best = Math.max(...arr.map((s) => s.wpm));
+    const avgWpm = Math.round(arr.reduce((a, s) => a + s.wpm, 0) / arr.length);
+    const avgAcc = Math.round(arr.reduce((a, s) => a + s.accuracy, 0) / arr.length);
+    return { best, avgWpm, avgAcc, count: arr.length };
   }
 
-  function recordSession(wpm, accuracy) {
-    const stats = loadStats();
-    stats.sessions += 1;
-    stats.bestWpm = Math.max(stats.bestWpm, wpm);
-    stats.accuracySum += accuracy;
-    saveStats(stats);
-    renderBestStats();
+  function renderProgressStats() {
+    const left = aggregateFor("left");
+    const both = aggregateFor("both");
+    const right = aggregateFor("right");
+    progressStatsEl.innerHTML =
+      '<div class="stats-table">' +
+      '<div class="stats-table-row header"><span></span><span>Left</span><span>Both</span><span>Right</span></div>' +
+      '<div class="stats-table-row"><span class="row-label">Best WPM</span><span>' + left.best + '</span><span>' + both.best + '</span><span>' + right.best + '</span></div>' +
+      '<div class="stats-table-row"><span class="row-label">Avg WPM</span><span>' + left.avgWpm + '</span><span>' + both.avgWpm + '</span><span>' + right.avgWpm + '</span></div>' +
+      '<div class="stats-table-row"><span class="row-label">Avg accuracy</span><span>' + (left.count ? left.avgAcc + "%" : "—") + '</span><span>' + (both.count ? both.avgAcc + "%" : "—") + '</span><span>' + (right.count ? right.avgAcc + "%" : "—") + '</span></div>' +
+      '<div class="stats-table-row"><span class="row-label">Sessions</span><span>' + left.count + '</span><span>' + both.count + '</span><span>' + right.count + '</span></div>' +
+      '</div>';
+  }
+
+  function drawChart() {
+    const ctx = progressChart.getContext("2d");
+    const dpr = window.devicePixelRatio || 1;
+    const width = progressChartWrap.clientWidth;
+    const height = progressChartWrap.clientHeight;
+    progressChart.width = Math.max(1, Math.round(width * dpr));
+    progressChart.height = Math.max(1, Math.round(height * dpr));
+    ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
+    ctx.clearRect(0, 0, width, height);
+
+    const days = RANGE_DAYS[ui.range] || 30;
+    const now = Date.now();
+    const cutoff = now - days * 24 * 60 * 60 * 1000;
+    const colors = {
+      left: getComputedStyle(document.documentElement).getPropertyValue("--chart-left").trim(),
+      both: getComputedStyle(document.documentElement).getPropertyValue("--chart-both").trim(),
+      right: getComputedStyle(document.documentElement).getPropertyValue("--chart-right").trim()
+    };
+
+    const activeSeries = ui.series
+      .map((mode) => ({
+        mode,
+        points: sessions
+          .filter((s) => s.mode === mode && s.ts >= cutoff)
+          .sort((a, b) => a.ts - b.ts)
+      }))
+      .filter((s) => s.points.length > 0);
+
+    if (activeSeries.length === 0) return;
+
+    const allWpm = activeSeries.flatMap((s) => s.points.map((p) => p.wpm));
+    const maxWpm = Math.max(...allWpm, 10);
+    const minWpm = Math.min(0, Math.min(...allWpm));
+    const padX = 14;
+    const padY = 14;
+
+    const xFor = (ts) => {
+      const clamped = Math.min(now, Math.max(cutoff, ts));
+      return padX + ((clamped - cutoff) / (now - cutoff || 1)) * (width - padX * 2);
+    };
+    const yFor = (wpm) => {
+      const range = maxWpm - minWpm || 1;
+      return height - padY - ((wpm - minWpm) / range) * (height - padY * 2);
+    };
+
+    activeSeries.forEach((series) => {
+      ctx.beginPath();
+      ctx.strokeStyle = colors[series.mode] || "#999";
+      ctx.lineWidth = 2.5;
+      ctx.lineJoin = "round";
+      series.points.forEach((p, i) => {
+        const x = xFor(p.ts);
+        const y = yFor(p.wpm);
+        if (i === 0) ctx.moveTo(x, y);
+        else ctx.lineTo(x, y);
+      });
+      ctx.stroke();
+
+      ctx.fillStyle = colors[series.mode] || "#999";
+      series.points.forEach((p) => {
+        ctx.beginPath();
+        ctx.arc(xFor(p.ts), yFor(p.wpm), 3, 0, Math.PI * 2);
+        ctx.fill();
+      });
+    });
+  }
+
+  function renderProgress() {
+    renderProgressStats();
+    drawChart();
+  }
+
+  function recordSession(wpm, accuracy, seconds) {
+    sessions.push({ mode: currentHand, wpm, accuracy, time: Math.round(seconds), ts: Date.now() });
+    saveSessions();
+    renderProgress();
   }
 
   function buildCategoryOptions() {
@@ -197,7 +339,7 @@
     resultTime.textContent = Math.round(seconds) + "s";
     resultCard.classList.remove("hidden");
 
-    recordSession(wpm, accuracy);
+    recordSession(wpm, accuracy, seconds);
   }
 
   function onInput() {
@@ -213,6 +355,64 @@
     }
   }
 
+  function setActiveButton(container, selector, matchAttr, value) {
+    container.querySelectorAll(selector).forEach((btn) => {
+      btn.classList.toggle("active", btn.dataset[matchAttr] === value);
+    });
+  }
+
+  function applyHand(hand) {
+    currentHand = hand;
+    ui.hand = hand;
+    setActiveButton(handSelect, ".hand-btn", "hand", hand);
+    saveUi();
+  }
+
+  function applyRange(range) {
+    ui.range = range;
+    setActiveButton(rangeToggle, ".range-btn", "range", range);
+    saveUi();
+    drawChart();
+  }
+
+  function applyHideStats(hidden) {
+    ui.hideStats = hidden;
+    progressStatsEl.classList.toggle("hidden-info", hidden);
+    toggleStatsBtn.textContent = hidden ? "Show info" : "Hide info";
+    toggleStatsBtn.setAttribute("aria-pressed", String(hidden));
+    saveUi();
+  }
+
+  function applySeriesCheckboxes() {
+    seriesToggle.querySelectorAll("input[type=checkbox]").forEach((box) => {
+      box.checked = ui.series.includes(box.dataset.series);
+    });
+  }
+
+  handSelect.addEventListener("click", (e) => {
+    const btn = e.target.closest(".hand-btn");
+    if (!btn) return;
+    applyHand(btn.dataset.hand);
+  });
+
+  rangeToggle.addEventListener("click", (e) => {
+    const btn = e.target.closest(".range-btn");
+    if (!btn) return;
+    applyRange(btn.dataset.range);
+  });
+
+  seriesToggle.addEventListener("change", () => {
+    ui.series = Array.from(seriesToggle.querySelectorAll("input[type=checkbox]:checked")).map(
+      (box) => box.dataset.series
+    );
+    saveUi();
+    drawChart();
+  });
+
+  toggleStatsBtn.addEventListener("click", () => applyHideStats(!ui.hideStats));
+
+  window.addEventListener("resize", drawChart);
+
   categorySelect.addEventListener("change", () => resetRound(true));
   nextBtn.addEventListener("click", () => resetRound(true));
   retryBtn.addEventListener("click", () => resetRound(false));
@@ -224,7 +424,25 @@
     if (e.key === "Enter") e.preventDefault();
   });
 
+  // Once a round is finished and the score is showing, pressing Enter
+  // (from anywhere on the page, since the input is disabled at that point)
+  // jumps straight to the next affirmation.
+  document.addEventListener("keydown", (e) => {
+    if (e.key !== "Enter") return;
+    if (finished && !resultCard.classList.contains("hidden")) {
+      e.preventDefault();
+      resetRound(true);
+    }
+  });
+
+  ui = loadUi();
+  sessions = loadSessions();
+
   buildCategoryOptions();
-  renderBestStats();
+  applyHand(ui.hand);
+  applyRange(ui.range);
+  applyHideStats(ui.hideStats);
+  applySeriesCheckboxes();
+  renderProgress();
   resetRound(true);
 })();
