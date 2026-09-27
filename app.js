@@ -22,13 +22,11 @@
   const statTime = document.getElementById("stat-time");
 
   const resultCard = document.getElementById("result-card");
-  const resultWpm = document.getElementById("result-wpm");
-  const resultAccuracy = document.getElementById("result-accuracy");
-  const resultTime = document.getElementById("result-time");
   const continueBtn = document.getElementById("continue-btn");
 
-  const progressChartWrap = document.getElementById("progress-chart-wrap");
+  const progressCard = document.getElementById("progress-card");
   const progressChart = document.getElementById("progress-chart");
+  const chartTooltip = document.getElementById("chart-tooltip");
   const progressStatsEl = document.getElementById("progress-stats");
   const toggleStatsBtn = document.getElementById("toggle-stats-btn");
   const rangeToggle = document.getElementById("range-toggle");
@@ -43,6 +41,8 @@
   let currentHand = "both";
   let sessions = [];
   let ui = { hand: "both", range: "1m", hideStats: false, series: ["both"] };
+  let chartLayout = null;
+  let hoverX = null;
 
   function loadUi() {
     try {
@@ -138,11 +138,38 @@
     return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
   }
 
+  function dayKey(ts) {
+    const d = new Date(ts);
+    return d.getFullYear() + "-" + d.getMonth() + "-" + d.getDate();
+  }
+
+  // 1W shows every attempt as its own point. 1M/1Q/1Y show one point per
+  // calendar day — the best (highest-WPM) attempt recorded that day —
+  // so the line reads as a trend instead of a dense scatter.
+  function pointsForSeries(mode, cutoff, now) {
+    const inRange = sessions.filter((s) => s.mode === mode && s.ts >= cutoff && s.ts <= now);
+    if (ui.range === "1w") {
+      return inRange
+        .slice()
+        .sort((a, b) => a.ts - b.ts)
+        .map((s) => ({ ts: s.ts, wpm: s.wpm, accuracy: s.accuracy }));
+    }
+    const bestByDay = new Map();
+    inRange.forEach((s) => {
+      const key = dayKey(s.ts);
+      const existing = bestByDay.get(key);
+      if (!existing || s.wpm > existing.wpm) bestByDay.set(key, s);
+    });
+    return Array.from(bestByDay.values())
+      .sort((a, b) => a.ts - b.ts)
+      .map((s) => ({ ts: s.ts, wpm: s.wpm, accuracy: s.accuracy }));
+  }
+
   function drawChart() {
     const ctx = progressChart.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
-    const width = progressChartWrap.clientWidth;
-    const height = progressChartWrap.clientHeight;
+    const width = progressCard.clientWidth;
+    const height = progressCard.clientHeight;
     progressChart.width = Math.max(1, Math.round(width * dpr));
     progressChart.height = Math.max(1, Math.round(height * dpr));
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
@@ -162,12 +189,7 @@
     const cutoff = now - days * 24 * 60 * 60 * 1000;
 
     const activeSeries = ui.series
-      .map((mode) => ({
-        mode,
-        points: sessions
-          .filter((s) => s.mode === mode && s.ts >= cutoff)
-          .sort((a, b) => a.ts - b.ts)
-      }))
+      .map((mode) => ({ mode, points: pointsForSeries(mode, cutoff, now) }))
       .filter((s) => s.points.length > 0);
 
     // Padding leaves room for the y-axis WPM labels on the left and the
@@ -179,12 +201,15 @@
     const plotW = width - padL - padR;
     const plotH = height - padT - padB;
 
+    chartLayout = null;
+
     if (activeSeries.length === 0) {
       ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
       ctx.fillStyle = labelColor;
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
       ctx.fillText("Not enough data yet — finish a round to start your chart.", width / 2, height / 2);
+      chartTooltip.classList.add("hidden");
       return;
     }
 
@@ -224,10 +249,12 @@
     ctx.textAlign = "right";
     ctx.fillText(dateLabel(now), padL + plotW, height - padB + 6);
 
-    // One smooth line per selected hand mode, plus a dot at each session.
+    // One smooth line per selected hand mode, plus a dot at each point.
+    const seriesPixels = {};
     activeSeries.forEach((series) => {
       const color = colors[series.mode] || "#999";
-      const pts = series.points.map((p) => ({ x: xFor(p.ts), y: yFor(p.wpm) }));
+      const pts = series.points.map((p) => ({ x: xFor(p.ts), y: yFor(p.wpm), ts: p.ts, wpm: p.wpm }));
+      seriesPixels[series.mode] = pts;
 
       ctx.beginPath();
       ctx.strokeStyle = color;
@@ -274,6 +301,91 @@
         ctx.fillText(label, legendX, padT - 4);
         legendX -= 16;
       });
+
+    chartLayout = { width, height, padT, padB, colors, seriesPixels };
+
+    if (hoverX !== null) drawHoverState(ctx);
+    else chartTooltip.classList.add("hidden");
+  }
+
+  // Draws the white crosshair line and highlighted dots for the nearest
+  // point in each visible series, and fills in the tooltip box's content.
+  function drawHoverState(ctx) {
+    if (!chartLayout) return;
+    const { padT, padB, height, colors, seriesPixels } = chartLayout;
+    const modes = Object.keys(seriesPixels);
+    if (modes.length === 0) return;
+
+    // Find the single closest point overall, to anchor the crosshair.
+    let closest = null;
+    let closestDist = Infinity;
+    modes.forEach((mode) => {
+      seriesPixels[mode].forEach((p) => {
+        const d = Math.abs(p.x - hoverX);
+        if (d < closestDist) {
+          closestDist = d;
+          closest = { mode, point: p };
+        }
+      });
+    });
+    if (!closest) return;
+
+    const snapX = closest.point.x;
+
+    ctx.save();
+    ctx.strokeStyle = "#ffffff";
+    ctx.globalAlpha = 0.85;
+    ctx.lineWidth = 1.5;
+    ctx.beginPath();
+    ctx.moveTo(snapX, padT);
+    ctx.lineTo(snapX, height - padB);
+    ctx.stroke();
+    ctx.restore();
+
+    const rows = [];
+    modes.forEach((mode) => {
+      const pts = seriesPixels[mode];
+      let nearest = pts[0];
+      let nearestDist = Math.abs(pts[0].x - snapX);
+      pts.forEach((p) => {
+        const d = Math.abs(p.x - snapX);
+        if (d < nearestDist) {
+          nearestDist = d;
+          nearest = p;
+        }
+      });
+
+      ctx.save();
+      ctx.fillStyle = colors[mode] || "#999";
+      ctx.strokeStyle = "#ffffff";
+      ctx.lineWidth = 2;
+      ctx.beginPath();
+      ctx.arc(nearest.x, nearest.y, 5, 0, Math.PI * 2);
+      ctx.fill();
+      ctx.stroke();
+      ctx.restore();
+
+      rows.push({ mode, wpm: nearest.wpm, ts: nearest.ts, y: nearest.y });
+    });
+
+    rows.sort((a, b) => a.y - b.y);
+    chartTooltip.innerHTML =
+      '<div class="tooltip-date">' + dateLabel(rows[0].ts) + "</div>" +
+      rows
+        .map(
+          (r) =>
+            '<div class="tooltip-row"><span class="tooltip-swatch" style="background:' +
+            (colors[r.mode] || "#999") +
+            '"></span>' +
+            (HAND_LABELS[r.mode] || r.mode) +
+            " Best WPM: " +
+            r.wpm +
+            "</div>"
+        )
+        .join("");
+    chartTooltip.classList.remove("hidden");
+    chartTooltip.style.left = snapX + "px";
+    chartTooltip.style.top = Math.max(rows[0].y - 14, 0) + "px";
   }
 
   function renderProgress() {
@@ -414,9 +526,11 @@
     const wpm = computeWpm(correctChars, seconds);
     const accuracy = computeAccuracy(currentEntry.text.length);
 
-    resultWpm.textContent = wpm;
-    resultAccuracy.textContent = accuracy + "%";
-    resultTime.textContent = Math.round(seconds) + "s";
+    // The top stat row is now the only place these numbers show, so make
+    // sure it reflects the exact final values rather than the last 250ms tick.
+    statWpm.textContent = String(wpm);
+    statAccuracy.textContent = accuracy + "%";
+    statTime.textContent = Math.round(seconds) + "s";
     resultCard.classList.remove("hidden");
 
     recordSession(wpm, accuracy, seconds);
@@ -491,6 +605,17 @@
   });
 
   toggleStatsBtn.addEventListener("click", () => applyHideStats(!ui.hideStats));
+
+  progressChart.addEventListener("mousemove", (e) => {
+    const rect = progressChart.getBoundingClientRect();
+    hoverX = e.clientX - rect.left;
+    drawChart();
+  });
+  progressChart.addEventListener("mouseleave", () => {
+    hoverX = null;
+    chartTooltip.classList.add("hidden");
+    drawChart();
+  });
 
   window.addEventListener("resize", drawChart);
 
