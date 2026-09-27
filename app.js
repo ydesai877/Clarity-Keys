@@ -11,9 +11,11 @@
   const handSelect = document.getElementById("hand-select");
   const nextBtn = document.getElementById("next-btn");
   const retryBtn = document.getElementById("retry-btn");
+  const typingCard = document.getElementById("typing-card");
   const targetTextEl = document.getElementById("target-text");
   const typingInput = document.getElementById("typing-input");
   const categoryTag = document.getElementById("category-tag");
+  const tapHint = document.getElementById("tap-hint");
 
   const statWpm = document.getElementById("stat-wpm");
   const statAccuracy = document.getElementById("stat-accuracy");
@@ -267,6 +269,7 @@
     statTime.textContent = "0s";
     resultCard.classList.add("hidden");
     typingInput.disabled = false;
+    tapHint.classList.remove("hidden");
     typingInput.focus();
   }
 
@@ -347,6 +350,7 @@
     if (!startTime && typed.length > 0) {
       startTime = Date.now();
       timerId = setInterval(tick, 250);
+      tapHint.classList.add("hidden");
     }
     updateHighlighting(typed);
     tick();
@@ -418,6 +422,7 @@
   retryBtn.addEventListener("click", () => resetRound(false));
   continueBtn.addEventListener("click", () => resetRound(true));
   typingInput.addEventListener("input", onInput);
+  typingCard.addEventListener("click", () => typingInput.focus());
   typingInput.addEventListener("keydown", (e) => {
     // Prevent Enter from adding a newline the target text doesn't expect;
     // treat it as a normal keystroke against the target text instead.

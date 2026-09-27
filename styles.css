@@ -7,6 +7,7 @@
   --accent: #7c6cf0;
   --accent-dark: #5c4de0;
   --correct: #2fae66;
+  --correct-bg: #e1f5e9;
   --incorrect: #e0466b;
   --incorrect-bg: #fbe4e9;
   --pending: #b8b3cc;
@@ -27,6 +28,7 @@
     --accent: #9b8bff;
     --accent-dark: #7c6cf0;
     --correct: #4fd589;
+    --correct-bg: #1f3a2a;
     --incorrect: #ff7896;
     --incorrect-bg: #3a2130;
     --pending: #4c4666;
@@ -177,15 +179,22 @@ button:active { transform: scale(0.97); }
   margin: 0 0 14px;
 }
 
+.typing-card {
+  cursor: text;
+}
+
 .target-text {
-  font-size: clamp(18px, 3.6vw, 22px);
-  line-height: 1.7;
-  margin-bottom: 18px;
+  font-size: clamp(20px, 4vw, 26px);
+  line-height: 1.8;
   letter-spacing: 0.01em;
 }
 
 .target-text .char { white-space: pre-wrap; }
-.char.correct { color: var(--correct); }
+.char.correct {
+  color: var(--correct);
+  background: var(--correct-bg);
+  border-radius: 3px;
+}
 .char.incorrect {
   color: var(--incorrect);
   background: var(--incorrect-bg);
@@ -196,22 +205,31 @@ button:active { transform: scale(0.97); }
   border-bottom: 2px solid var(--accent);
 }
 
-.typing-input {
-  width: 100%;
-  font-size: 17px;
-  line-height: 1.6;
-  padding: 14px;
-  border-radius: 12px;
-  border: 1.5px solid var(--border);
-  background: var(--bg-2);
-  color: var(--text-main);
-  resize: vertical;
-  font-family: inherit;
+.tap-hint {
+  margin: 14px 0 0;
+  font-size: 13px;
+  color: var(--text-soft);
 }
 
-.typing-input:focus {
+.tap-hint.hidden { display: none; }
+
+/* The textarea still captures keystrokes and opens the mobile keyboard,
+   but all visible feedback happens in the colored text above, so the
+   box itself is kept off-screen rather than shown. */
+.visually-hidden-input {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  padding: 0;
+  margin: 0;
+  border: none;
+  overflow: hidden;
+  opacity: 0;
+  resize: none;
+}
+
+.visually-hidden-input:focus {
   outline: none;
-  border-color: var(--accent);
 }
 
 .result-card { text-align: center; }

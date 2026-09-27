@@ -35,18 +35,18 @@
       <div class="stat"><span class="stat-value" id="stat-time">0s</span><span class="stat-label">Time</span></div>
     </section>
 
-    <main class="typing-card">
+    <main class="typing-card" id="typing-card">
       <p class="category-tag" id="category-tag">Morning Affirmation</p>
-      <div class="target-text" id="target-text" aria-hidden="true"></div>
+      <div class="target-text" id="target-text"></div>
+      <p class="tap-hint" id="tap-hint">Tap here and start typing…</p>
       <textarea
         id="typing-input"
-        class="typing-input"
+        class="typing-input visually-hidden-input"
         autocomplete="off"
         autocorrect="off"
         autocapitalize="off"
         spellcheck="false"
-        rows="4"
-        placeholder="Tap here and start typing the text above…"
+        aria-label="Type the affirmation shown above"
       ></textarea>
     </main>
 
