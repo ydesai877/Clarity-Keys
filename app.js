@@ -132,6 +132,12 @@
       '</div>';
   }
 
+  const HAND_LABELS = { left: "LH", both: "Both", right: "RH" };
+
+  function dateLabel(ts) {
+    return new Date(ts).toLocaleDateString(undefined, { month: "short", day: "numeric" });
+  }
+
   function drawChart() {
     const ctx = progressChart.getContext("2d");
     const dpr = window.devicePixelRatio || 1;
@@ -142,14 +148,18 @@
     ctx.setTransform(dpr, 0, 0, dpr, 0, 0);
     ctx.clearRect(0, 0, width, height);
 
+    const styles = getComputedStyle(document.documentElement);
+    const colors = {
+      left: styles.getPropertyValue("--chart-left").trim(),
+      both: styles.getPropertyValue("--chart-both").trim(),
+      right: styles.getPropertyValue("--chart-right").trim()
+    };
+    const gridColor = styles.getPropertyValue("--border").trim();
+    const labelColor = styles.getPropertyValue("--text-soft").trim();
+
     const days = RANGE_DAYS[ui.range] || 30;
     const now = Date.now();
     const cutoff = now - days * 24 * 60 * 60 * 1000;
-    const colors = {
-      left: getComputedStyle(document.documentElement).getPropertyValue("--chart-left").trim(),
-      both: getComputedStyle(document.documentElement).getPropertyValue("--chart-both").trim(),
-      right: getComputedStyle(document.documentElement).getPropertyValue("--chart-right").trim()
-    };
 
     const activeSeries = ui.series
       .map((mode) => ({
@@ -160,43 +170,110 @@
       }))
       .filter((s) => s.points.length > 0);
 
-    if (activeSeries.length === 0) return;
+    // Padding leaves room for the y-axis WPM labels on the left and the
+    // date labels along the bottom, so the plotted line never overlaps them.
+    const padL = 34;
+    const padR = 12;
+    const padT = 16;
+    const padB = 20;
+    const plotW = width - padL - padR;
+    const plotH = height - padT - padB;
+
+    if (activeSeries.length === 0) {
+      ctx.font = "13px -apple-system, BlinkMacSystemFont, sans-serif";
+      ctx.fillStyle = labelColor;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText("Not enough data yet — finish a round to start your chart.", width / 2, height / 2);
+      return;
+    }
 
     const allWpm = activeSeries.flatMap((s) => s.points.map((p) => p.wpm));
     const maxWpm = Math.max(...allWpm, 10);
     const minWpm = Math.min(0, Math.min(...allWpm));
-    const padX = 14;
-    const padY = 14;
+    const wpmRange = maxWpm - minWpm || 1;
 
     const xFor = (ts) => {
       const clamped = Math.min(now, Math.max(cutoff, ts));
-      return padX + ((clamped - cutoff) / (now - cutoff || 1)) * (width - padX * 2);
+      return padL + ((clamped - cutoff) / (now - cutoff || 1)) * plotW;
     };
-    const yFor = (wpm) => {
-      const range = maxWpm - minWpm || 1;
-      return height - padY - ((wpm - minWpm) / range) * (height - padY * 2);
-    };
+    const yFor = (wpm) => padT + plotH - ((wpm - minWpm) / wpmRange) * plotH;
 
-    activeSeries.forEach((series) => {
+    // Horizontal gridlines with WPM labels, at roughly 4 even steps.
+    const gridSteps = 4;
+    ctx.strokeStyle = gridColor;
+    ctx.lineWidth = 1;
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.fillStyle = labelColor;
+    ctx.textAlign = "right";
+    ctx.textBaseline = "middle";
+    for (let i = 0; i <= gridSteps; i++) {
+      const wpmVal = Math.round(minWpm + (wpmRange * i) / gridSteps);
+      const y = yFor(wpmVal);
       ctx.beginPath();
-      ctx.strokeStyle = colors[series.mode] || "#999";
+      ctx.moveTo(padL, y);
+      ctx.lineTo(padL + plotW, y);
+      ctx.stroke();
+      ctx.fillText(String(wpmVal), padL - 8, y);
+    }
+
+    // Date labels at the start and end of the selected range.
+    ctx.textAlign = "left";
+    ctx.textBaseline = "top";
+    ctx.fillText(dateLabel(cutoff), padL, height - padB + 6);
+    ctx.textAlign = "right";
+    ctx.fillText(dateLabel(now), padL + plotW, height - padB + 6);
+
+    // One smooth line per selected hand mode, plus a dot at each session.
+    activeSeries.forEach((series) => {
+      const color = colors[series.mode] || "#999";
+      const pts = series.points.map((p) => ({ x: xFor(p.ts), y: yFor(p.wpm) }));
+
+      ctx.beginPath();
+      ctx.strokeStyle = color;
       ctx.lineWidth = 2.5;
       ctx.lineJoin = "round";
-      series.points.forEach((p, i) => {
-        const x = xFor(p.ts);
-        const y = yFor(p.wpm);
-        if (i === 0) ctx.moveTo(x, y);
-        else ctx.lineTo(x, y);
-      });
+      ctx.lineCap = "round";
+      if (pts.length === 1) {
+        ctx.moveTo(pts[0].x - 6, pts[0].y);
+        ctx.lineTo(pts[0].x + 6, pts[0].y);
+      } else {
+        ctx.moveTo(pts[0].x, pts[0].y);
+        for (let i = 1; i < pts.length; i++) {
+          const prev = pts[i - 1];
+          const curr = pts[i];
+          const midX = (prev.x + curr.x) / 2;
+          const midY = (prev.y + curr.y) / 2;
+          ctx.quadraticCurveTo(prev.x, prev.y, midX, midY);
+        }
+        ctx.lineTo(pts[pts.length - 1].x, pts[pts.length - 1].y);
+      }
       ctx.stroke();
 
-      ctx.fillStyle = colors[series.mode] || "#999";
-      series.points.forEach((p) => {
+      ctx.fillStyle = color;
+      pts.forEach((p) => {
         ctx.beginPath();
-        ctx.arc(xFor(p.ts), yFor(p.wpm), 3, 0, Math.PI * 2);
+        ctx.arc(p.x, p.y, 3, 0, Math.PI * 2);
         ctx.fill();
       });
     });
+
+    // Small legend in the top-right, one entry per line currently shown.
+    ctx.font = "11px -apple-system, BlinkMacSystemFont, sans-serif";
+    ctx.textBaseline = "middle";
+    let legendX = width - padR;
+    activeSeries
+      .slice()
+      .reverse()
+      .forEach((series) => {
+        const label = HAND_LABELS[series.mode] || series.mode;
+        const textWidth = ctx.measureText(label).width;
+        legendX -= textWidth;
+        ctx.textAlign = "left";
+        ctx.fillStyle = colors[series.mode] || "#999";
+        ctx.fillText(label, legendX, padT - 4);
+        legendX -= 16;
+      });
   }
 
   function renderProgress() {
