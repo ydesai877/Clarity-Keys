@@ -81,8 +81,55 @@ const AFFIRMATIONS = [
   {
     category: "Core Beliefs",
     text: "I'm becoming everything I ever wanted to be."
-  }
-,
+  }, 
+  {
+    category: "Core Beliefs",
+    text: "I genuiely believe I am better than everyone else. "
+  },
+   {
+    category: "Core Beliefs",
+    text: "I think extremely highly of myself."
+  },
+  {
+    category: "Core Beliefs",
+    text: "I keep promises to myself."
+  },
+  {
+    category: "Core Beliefs",
+    text: "I constantly get better at my craft."
+  },
+  {
+    category: "Core Beliefs",
+    text: "I am capable of doing extraordinary things."
+  },
+  {
+    category: "Core Beliefs",
+    text: "I work even when no one is watching."
+  },
+  {
+    category: "Just Keep Going",
+    text: "One bad hour, you still have 23. Just Keep Going."
+  },
+  {
+    category: "Just Keep Going",
+    text: "1 bad day, you still have 6. Just Keep Going."
+  },
+  {
+    category: "Just Keep Going",
+    text: "1 bad week, you still have 3. Just Keep Going."
+  },
+  {
+    category: "Just Keep Going",
+    text: "1 bad month, you still have 11. Just Keep Going."
+  },
+  {
+    category: "Just Keep Going",
+    text: "1 bad year, you still have your whole life. Just Keep Going."
+  },
+  {
+    category: "Just Keep Going",
+    text:"life is short, and if you ever come across beautiful exciting  crazy moment you gotta seize it while you can, before the moment is gone."
+  },
   {
     category: "Night Affirmations",
     text: "I release the tension I carried today."
