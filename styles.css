@@ -437,6 +437,261 @@ button:active { transform: scale(0.97); }
   height: 15px;
 }
 
+.series-divider {
+  width: 1px;
+  align-self: stretch;
+  background: var(--border);
+}
+
+/* ---------- Mode tabs ---------- */
+
+.mode-tabs {
+  display: flex;
+  justify-content: center;
+  margin: 0 auto 18px;
+  width: max-content;
+  border: 1px solid var(--border);
+  border-radius: 12px;
+  overflow: hidden;
+}
+
+.mode-tab {
+  border: none;
+  border-radius: 0;
+  background: var(--card-bg);
+  color: var(--text-soft);
+  padding: 10px 18px;
+}
+
+.mode-tab + .mode-tab { border-left: 1px solid var(--border); }
+
+.mode-tab.active {
+  background: var(--accent);
+  color: #fff;
+}
+
+body.race-mode .solo-only { display: none; }
+body.race-mode.race-no-typing #live-stats,
+body.race-mode.race-no-typing #typing-card { display: none; }
+
+/* ---------- Race panel ---------- */
+
+.race-panel {
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  padding: 20px;
+  margin-bottom: 18px;
+}
+
+.race-setup-needed h2 { margin: 0 0 6px; font-size: 18px; }
+.race-setup-needed p { margin: 0; color: var(--text-soft); }
+
+.race-field {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  font-size: 13px;
+  color: var(--text-soft);
+  font-weight: 600;
+}
+
+.race-field input[type="text"],
+.race-join-actions input[type="text"] {
+  font: inherit;
+  font-size: 15px;
+  font-weight: 400;
+  color: var(--text-main);
+  background: var(--bg-2);
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  padding: 10px 12px;
+}
+
+.race-join {
+  display: flex;
+  flex-direction: column;
+  gap: 14px;
+}
+
+.race-join-actions {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: center;
+  gap: 10px;
+}
+
+.race-join-actions input[type="text"] {
+  width: 7ch;
+  text-transform: uppercase;
+  letter-spacing: 0.15em;
+  text-align: center;
+}
+
+.race-or { color: var(--text-soft); font-size: 13px; }
+
+.primary-btn {
+  background: var(--accent);
+  border-color: var(--accent);
+  color: #fff;
+}
+.primary-btn:hover { background: var(--accent-dark); }
+
+button:disabled { opacity: 0.55; cursor: default; }
+
+.race-room-header {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  margin-bottom: 14px;
+}
+
+.race-code-line {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-size: 15px;
+}
+
+.race-code-line strong {
+  font-size: 22px;
+  letter-spacing: 0.15em;
+  color: var(--accent-dark);
+}
+
+.race-status { color: var(--text-soft); font-size: 14px; }
+
+.race-settings {
+  display: grid;
+  grid-template-columns: 1fr 1.4fr;
+  gap: 16px;
+  margin-bottom: 14px;
+}
+
+.race-slider-field input[type="range"] {
+  width: 100%;
+  accent-color: var(--accent);
+}
+
+.race-slider-ends {
+  display: flex;
+  justify-content: space-between;
+  font-weight: 400;
+  font-size: 11px;
+}
+
+.race-settings-readonly {
+  margin: 0 0 14px;
+  font-size: 14px;
+  color: var(--text-soft);
+}
+
+.race-players {
+  list-style: none;
+  margin: 0 0 14px;
+  padding: 0;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.race-player.offline { opacity: 0.5; }
+
+.rp-top {
+  display: flex;
+  justify-content: space-between;
+  align-items: baseline;
+  gap: 10px;
+  font-size: 14px;
+  margin-bottom: 4px;
+}
+
+.rp-name { font-weight: 600; }
+
+.rp-tag {
+  margin-left: 6px;
+  font-size: 11px;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--accent-dark);
+  background: color-mix(in srgb, var(--accent) 14%, transparent);
+  padding: 2px 6px;
+  border-radius: 999px;
+}
+
+.rp-meta { color: var(--text-soft); font-size: 13px; white-space: nowrap; }
+
+.rp-bar {
+  height: 10px;
+  border-radius: 999px;
+  background: var(--bg-2);
+  overflow: hidden;
+}
+
+.rp-fill {
+  height: 100%;
+  width: 0;
+  background: color-mix(in srgb, var(--accent) 45%, var(--pending));
+  border-radius: 999px;
+  transition: width 0.25s linear;
+}
+
+.race-player.me .rp-fill { background: var(--accent); }
+.rp-fill.done { background: var(--correct); }
+.race-player.me .rp-fill.done { background: var(--correct); }
+
+.race-standings { margin-bottom: 14px; }
+
+.race-standings h3 {
+  margin: 0 0 8px;
+  font-size: 14px;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--text-soft);
+}
+
+.race-standings h3.race-champion {
+  font-size: 18px;
+  text-transform: none;
+  letter-spacing: 0;
+  color: var(--accent-dark);
+}
+
+.race-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.race-table th {
+  text-align: left;
+  font-size: 11px;
+  text-transform: uppercase;
+  letter-spacing: 0.05em;
+  color: var(--text-soft);
+  border-bottom: 1px solid var(--border);
+  padding: 6px 4px;
+}
+
+.race-table td { padding: 6px 4px; }
+.race-table tr.me td { color: var(--accent-dark); font-weight: 700; }
+
+.race-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 10px;
+}
+
+.race-actions #race-leave { margin-left: auto; }
+
+.race-error {
+  margin: 12px 0 0;
+  color: var(--incorrect);
+  font-size: 14px;
+}
+
 .app-footer {
   text-align: center;
   color: var(--text-soft);
@@ -460,6 +715,7 @@ button:active { transform: scale(0.97); }
 }
 
 @media (max-width: 420px) {
+  .race-settings { grid-template-columns: 1fr; }
   .stats-row { gap: 18px; }
   .stats-table-row { grid-template-columns: 1fr 1fr 1fr 1fr; font-size: 11px; }
   .progress-controls { justify-content: center; text-align: center; }

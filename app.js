@@ -23,6 +23,7 @@
 
   const resultCard = document.getElementById("result-card");
   const continueBtn = document.getElementById("continue-btn");
+  const resultHeading = resultCard.querySelector("h2");
 
   const progressChartWrap = document.getElementById("progress-chart-wrap");
   const progressChart = document.getElementById("progress-chart");
@@ -31,6 +32,7 @@
   const toggleStatsBtn = document.getElementById("toggle-stats-btn");
   const rangeToggle = document.getElementById("range-toggle");
   const seriesToggle = document.getElementById("series-toggle");
+  const onlineToggle = document.getElementById("online-toggle");
 
   let currentEntry = null;
   let pool = [];
@@ -40,23 +42,27 @@
   let finished = false;
   let currentHand = "both";
   let sessions = [];
-  let ui = { hand: "both", range: "1m", hideStats: false, series: ["both"] };
+  let ui = { hand: "both", range: "1m", hideStats: false, series: ["both"], includeOnline: true };
   let chartLayout = null;
+  // Set while a live race drives the typing card (see window.ClarityApp below).
+  let external = null;
+  let countdownTimer = null;
   let hoverX = null;
 
   function loadUi() {
     try {
       const raw = localStorage.getItem(UI_KEY);
-      if (!raw) return { hand: "both", range: "1m", hideStats: false, series: ["both"] };
+      if (!raw) return { hand: "both", range: "1m", hideStats: false, series: ["both"], includeOnline: true };
       const parsed = JSON.parse(raw);
       return {
         hand: HANDS.includes(parsed.hand) ? parsed.hand : "both",
         range: RANGE_DAYS[parsed.range] ? parsed.range : "1m",
         hideStats: !!parsed.hideStats,
-        series: Array.isArray(parsed.series) ? parsed.series.filter((s) => HANDS.includes(s)) : ["both"]
+        series: Array.isArray(parsed.series) ? parsed.series.filter((s) => HANDS.includes(s)) : ["both"],
+        includeOnline: parsed.includeOnline !== false
       };
     } catch (e) {
-      return { hand: "both", range: "1m", hideStats: false, series: ["both"] };
+      return { hand: "both", range: "1m", hideStats: false, series: ["both"], includeOnline: true };
     }
   }
 
@@ -109,8 +115,13 @@
     }
   }
 
+  // Online race results count only when the "Online races" box is ticked.
+  function visibleSessions() {
+    return ui.includeOnline ? sessions : sessions.filter((s) => !s.online);
+  }
+
   function aggregateFor(mode) {
-    const arr = sessions.filter((s) => s.mode === mode);
+    const arr = visibleSessions().filter((s) => s.mode === mode);
     if (arr.length === 0) return { best: "—", avgWpm: "—", avgAcc: "—", count: 0 };
     const best = Math.max(...arr.map((s) => s.wpm));
     const avgWpm = Math.round(arr.reduce((a, s) => a + s.wpm, 0) / arr.length);
@@ -147,7 +158,7 @@
   // calendar day — the best (highest-WPM) attempt recorded that day —
   // so the line reads as a trend instead of a dense scatter.
   function pointsForSeries(mode, cutoff, now) {
-    const inRange = sessions.filter((s) => s.mode === mode && s.ts >= cutoff && s.ts <= now);
+    const inRange = visibleSessions().filter((s) => s.mode === mode && s.ts >= cutoff && s.ts <= now);
     if (ui.range === "1w") {
       return inRange
         .slice()
@@ -448,8 +459,10 @@
     drawChart();
   }
 
-  function recordSession(wpm, accuracy, seconds) {
-    sessions.push({ mode: currentHand, wpm, accuracy, time: Math.round(seconds), ts: Date.now() });
+  function recordSession(wpm, accuracy, seconds, online) {
+    const session = { mode: currentHand, wpm, accuracy, time: Math.round(seconds), ts: Date.now() };
+    if (online) session.online = true;
+    sessions.push(session);
     saveSessions();
     renderProgress();
   }
@@ -572,6 +585,15 @@
     }
   }
 
+  // Share of the text typed correctly from the start, 0–1. You only move
+  // forward in a race while your text matches.
+  function correctPrefixFraction(typed) {
+    const target = currentEntry.text;
+    let i = 0;
+    while (i < typed.length && i < target.length && typed[i] === target[i]) i++;
+    return target.length ? i / target.length : 0;
+  }
+
   function finishRound() {
     finished = true;
     clearInterval(timerId);
@@ -588,6 +610,13 @@
     statTime.textContent = Math.round(seconds) + "s";
     resultCard.classList.remove("hidden");
 
+    if (external) {
+      resultHeading.textContent = "Finished!";
+      continueBtn.classList.add("hidden");
+      recordSession(wpm, accuracy, seconds, true);
+      if (external.onFinish) external.onFinish({ wpm, accuracy, seconds });
+      return;
+    }
     recordSession(wpm, accuracy, seconds);
   }
 
@@ -598,8 +627,12 @@
       timerId = setInterval(tick, 250);
       tapHint.classList.add("hidden");
     }
+    if (typed.length > 0) tapHint.classList.add("hidden");
     updateHighlighting(typed);
     tick();
+    if (external && external.onProgress && !finished) {
+      external.onProgress(correctPrefixFraction(typed), Number(statWpm.textContent) || 0);
+    }
     if (typed.length >= currentEntry.text.length && !finished) {
       finishRound();
     }
@@ -634,9 +667,10 @@
   }
 
   function applySeriesCheckboxes() {
-    seriesToggle.querySelectorAll("input[type=checkbox]").forEach((box) => {
+    seriesToggle.querySelectorAll("input[data-series]").forEach((box) => {
       box.checked = ui.series.includes(box.dataset.series);
     });
+    onlineToggle.checked = ui.includeOnline;
   }
 
   handSelect.addEventListener("click", (e) => {
@@ -652,11 +686,12 @@
   });
 
   seriesToggle.addEventListener("change", () => {
-    ui.series = Array.from(seriesToggle.querySelectorAll("input[type=checkbox]:checked")).map(
+    ui.series = Array.from(seriesToggle.querySelectorAll("input[data-series]:checked")).map(
       (box) => box.dataset.series
     );
+    ui.includeOnline = onlineToggle.checked;
     saveUi();
-    drawChart();
+    renderProgress();
   });
 
   toggleStatsBtn.addEventListener("click", () => applyHideStats(!ui.hideStats));
@@ -677,7 +712,9 @@
   categorySelect.addEventListener("change", () => resetRound(true));
   nextBtn.addEventListener("click", () => resetRound(true));
   retryBtn.addEventListener("click", () => resetRound(false));
-  continueBtn.addEventListener("click", () => resetRound(true));
+  continueBtn.addEventListener("click", () => {
+    if (!external) resetRound(true);
+  });
   typingInput.addEventListener("input", onInput);
   typingCard.addEventListener("click", () => typingInput.focus());
   typingInput.addEventListener("keydown", (e) => {
@@ -691,11 +728,90 @@
   // jumps straight to the next affirmation.
   document.addEventListener("keydown", (e) => {
     if (e.key !== "Enter") return;
+    if (external) return;
     if (finished && !resultCard.classList.contains("hidden")) {
       e.preventDefault();
       resetRound(true);
     }
   });
+
+  function stopCountdown() {
+    clearInterval(countdownTimer);
+    countdownTimer = null;
+  }
+
+  // Lets race.js drive the typing card with a shared text and start time.
+  window.ClarityApp = {
+    categories() {
+      return Array.from(new Set(AFFIRMATIONS.map((a) => a.category)));
+    },
+    textsFor(category) {
+      const pool = category === "All" ? AFFIRMATIONS : AFFIRMATIONS.filter((a) => a.category === category);
+      return pool.map((a) => a.text);
+    },
+    // Loads `text`, locks the input until `startAtLocal` (a Date.now() value),
+    // then starts the clock at that moment.
+    beginExternalRound(text, opts) {
+      stopCountdown();
+      external = { onProgress: opts.onProgress, onFinish: opts.onFinish };
+      currentEntry = { category: opts.label || "Live race", text };
+      renderTarget();
+      typingInput.value = "";
+      finished = false;
+      errorPositions = new Set();
+      clearInterval(timerId);
+      startTime = null;
+      statWpm.textContent = "0";
+      statAccuracy.textContent = "100%";
+      statTime.textContent = "0s";
+      resultCard.classList.add("hidden");
+      continueBtn.classList.add("hidden");
+      typingInput.disabled = true;
+      tapHint.classList.remove("hidden");
+
+      const update = () => {
+        const left = opts.startAtLocal - Date.now();
+        if (left > 0) {
+          tapHint.textContent = "Starting in " + Math.ceil(left / 1000) + "…";
+          return;
+        }
+        stopCountdown();
+        tapHint.textContent = "Go! Type now.";
+        typingInput.disabled = false;
+        typingInput.focus();
+        startTime = opts.startAtLocal;
+        timerId = setInterval(tick, 250);
+      };
+      update();
+      if (typingInput.disabled) countdownTimer = setInterval(update, 100);
+    },
+    // Shows a message on the finished card, e.g. "2nd place · +2 pts".
+    setResultMessage(message) {
+      resultHeading.textContent = message;
+    },
+    // The race ended before you finished.
+    stopExternalRound(message) {
+      if (!external || finished) return;
+      stopCountdown();
+      clearInterval(timerId);
+      finished = true;
+      typingInput.disabled = true;
+      resultHeading.textContent = message;
+      resultCard.classList.remove("hidden");
+    },
+    // Back to solo practice.
+    endExternalMode() {
+      stopCountdown();
+      external = null;
+      tapHint.textContent = "Tap here and start typing…";
+      resultHeading.textContent = "Nicely typed.";
+      continueBtn.classList.remove("hidden");
+      resetRound(true);
+    },
+    isRacing() {
+      return !!external;
+    },
+  };
 
   ui = loadUi();
   sessions = loadSessions();

@@ -15,9 +15,69 @@
       <p class="tagline">Type your affirmations. Build speed and accuracy at the same time.</p>
     </header>
 
+    <nav class="mode-tabs" id="mode-tabs" aria-label="Mode">
+      <button type="button" class="mode-tab active" data-mode="solo">Solo practice</button>
+      <button type="button" class="mode-tab" data-mode="race">Live race</button>
+    </nav>
+
+    <section class="race-panel hidden" id="race-panel">
+      <div class="race-setup-needed hidden" id="race-setup-needed">
+        <h2>Live race is not set up yet</h2>
+        <p>Add your Convex URL to <code>convex-config.js</code>. The README has the steps.</p>
+      </div>
+
+      <div class="race-join" id="race-join">
+        <label class="race-field">
+          <span>Your name</span>
+          <input type="text" id="race-name" maxlength="20" autocomplete="nickname" placeholder="Name shown to other racers" />
+        </label>
+        <div class="race-join-actions">
+          <button type="button" id="race-create" class="primary-btn">Create a race room</button>
+          <span class="race-or">or</span>
+          <input type="text" id="race-code-input" maxlength="4" placeholder="CODE" aria-label="Room code" autocapitalize="characters" />
+          <button type="button" id="race-join-btn">Join</button>
+        </div>
+      </div>
+
+      <div class="race-room hidden" id="race-room">
+        <div class="race-room-header">
+          <div class="race-code-line">
+            Room <strong id="race-code"></strong>
+            <button type="button" id="race-copy-link" class="ghost-btn">Copy invite link</button>
+          </div>
+          <div class="race-status" id="race-status" aria-live="polite"></div>
+        </div>
+
+        <div class="race-settings" id="race-settings">
+          <label class="race-field">
+            <span>Category</span>
+            <select id="race-category"></select>
+          </label>
+          <label class="race-field race-slider-field">
+            <span>Races this season: <strong id="race-count-label">5</strong></span>
+            <input type="range" id="race-count" min="1" max="25" step="1" value="5" />
+            <span class="race-slider-ends"><span>1</span><span>All</span></span>
+          </label>
+        </div>
+        <p class="race-settings-readonly hidden" id="race-settings-readonly"></p>
+
+        <ul class="race-players" id="race-players"></ul>
+        <div class="race-standings hidden" id="race-standings"></div>
+
+        <div class="race-actions">
+          <button type="button" id="race-start" class="primary-btn hidden">Start season</button>
+          <button type="button" id="race-next" class="primary-btn hidden">Next race</button>
+          <button type="button" id="race-end" class="hidden">End race now</button>
+          <button type="button" id="race-leave" class="ghost-btn">Leave room</button>
+        </div>
+      </div>
+
+      <p class="race-error hidden" id="race-error" role="alert"></p>
+    </section>
+
     <section class="controls">
       <label for="category-select" class="visually-hidden">Category</label>
-      <select id="category-select"></select>
+      <select id="category-select" class="solo-only"></select>
 
       <div class="hand-select" id="hand-select" role="group" aria-label="Typing hand">
         <button type="button" class="hand-btn" data-hand="left">Left</button>
@@ -25,8 +85,8 @@
         <button type="button" class="hand-btn" data-hand="right">Right</button>
       </div>
 
-      <button id="next-btn" type="button">Next affirmation</button>
-      <button id="retry-btn" type="button">Retry</button>
+      <button id="next-btn" type="button" class="solo-only">Next affirmation</button>
+      <button id="retry-btn" type="button" class="solo-only">Retry</button>
     </section>
 
     <section class="stats-row" id="live-stats" aria-live="polite">
@@ -78,6 +138,8 @@
           <label><input type="checkbox" data-series="left" /> LH</label>
           <label><input type="checkbox" data-series="both" /> Both</label>
           <label><input type="checkbox" data-series="right" /> RH</label>
+          <span class="series-divider" aria-hidden="true"></span>
+          <label title="Include your live race results in this chart and table"><input type="checkbox" id="online-toggle" /> Online races</label>
         </div>
       </div>
     </section>
@@ -89,5 +151,8 @@
 
   <script src="affirmations.js"></script>
   <script src="app.js"></script>
+  <script src="vendor/convex-1.46.0.browser.js"></script>
+  <script src="convex-config.js"></script>
+  <script src="race.js"></script>
 </body>
 </html>

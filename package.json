@@ -1,0 +1,19 @@
+{
+  "name": "clarity-keys",
+  "private": true,
+  "description": "Affirmation typing practice with live multiplayer races (Convex backend).",
+  "type": "module",
+  "scripts": {
+    "dev": "convex dev",
+    "deploy": "convex deploy",
+    "test": "vitest run"
+  },
+  "dependencies": {
+    "convex": "1.46.0"
+  },
+  "devDependencies": {
+    "convex-test": "0.0.60",
+    "vitest": "^3.2.4",
+    "@edge-runtime/vm": "^5.0.0"
+  }
+}
