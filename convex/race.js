@@ -4,7 +4,12 @@ import { internal } from "./_generated/api";
 
 // Points for 1st, 2nd and 3rd place. Everyone else gets 0.
 const POINTS = [3, 2, 1];
-const COUNTDOWN_MS = 3500;
+// Start sequence, like Formula 1: a short lead-in, then five red lights
+// come on one per second, then they all go out after a random hold.
+const LIGHTS_LEAD_MS = 1000;
+const LIGHT_INTERVAL_MS = 1000;
+const HOLD_MIN_MS = 200;
+const HOLD_MAX_MS = 3000;
 // A player with no heartbeat for this long counts as disconnected.
 const STALE_MS = 20000;
 // Time limit per race: at least 30 s, or 0.6 s per character (about 20 WPM).
@@ -74,6 +79,23 @@ function requireHost(room, playerKey) {
   if (room.hostKey !== playerKey) throw new ConvexError("Only the host can do that.");
 }
 
+function hasFinished(p) {
+  return p.raceTimeMs !== null && p.raceTimeMs !== undefined;
+}
+
+// Race score = WPM × accuracy. Example: 60 WPM at 80% = 48.0.
+// Stored as WPM × accuracy-percent (an integer) so ties compare exactly.
+function scoreKey(p) {
+  return (p.raceWpm || 0) * (p.raceAccuracy || 0);
+}
+
+// Highest score wins. On a tie, the faster time wins.
+function rankFinishers(finishers) {
+  return finishers
+    .slice()
+    .sort((a, b) => scoreKey(b) - scoreKey(a) || a.raceTimeMs - b.raceTimeMs || a.joinedAt - b.joinedAt);
+}
+
 // Players who must finish (or time out) before the current race ends.
 function racersFor(room, players, now) {
   return players.filter(
@@ -84,9 +106,11 @@ function racersFor(room, players, now) {
 async function beginRace(ctx, room, raceIndex) {
   const now = Date.now();
   const text = room.texts[raceIndex];
-  const startAt = now + COUNTDOWN_MS;
+  const lightsAt = now + LIGHTS_LEAD_MS;
+  const hold = HOLD_MIN_MS + Math.floor(Math.random() * (HOLD_MAX_MS - HOLD_MIN_MS));
+  const startAt = lightsAt + 4 * LIGHT_INTERVAL_MS + hold;
   const deadline = startAt + Math.max(MIN_RACE_MS, text.length * MS_PER_CHAR);
-  await ctx.db.patch(room._id, { status: "racing", raceIndex, startAt, deadline });
+  await ctx.db.patch(room._id, { status: "racing", raceIndex, lightsAt, startAt, deadline });
 
   const players = await roomPlayers(ctx, room._id);
   for (const p of players) {
@@ -96,6 +120,7 @@ async function beginRace(ctx, room, raceIndex) {
       place: null,
       raceWpm: null,
       raceAccuracy: null,
+      raceTimeMs: null,
     });
   }
   await ctx.scheduler.runAt(deadline, internal.race.timeoutRace, {
@@ -105,12 +130,34 @@ async function beginRace(ctx, room, raceIndex) {
   });
 }
 
+// Places and points are decided when the race ends, by score, not by
+// who finished first.
 async function endRace(ctx, room) {
   if (room.status !== "racing") return;
   const players = await roomPlayers(ctx, room._id);
+  const inRace = players.filter((p) => p.activeFromRace <= room.raceIndex);
+  const ranked = rankFinishers(inRace.filter(hasFinished));
+  for (let i = 0; i < ranked.length; i++) {
+    const p = ranked[i];
+    const place = i + 1;
+    const points = POINTS[i] || 0;
+    await ctx.db.patch(p._id, { place, points: p.points + points });
+    await ctx.db.insert("results", {
+      roomId: room._id,
+      raceIndex: room.raceIndex,
+      playerId: p._id,
+      name: p.name,
+      place,
+      points,
+      wpm: p.raceWpm,
+      accuracy: p.raceAccuracy,
+      timeMs: p.raceTimeMs,
+      score: scoreKey(p) / 100,
+    });
+  }
   // Anyone who was racing but did not finish gets a DNF with 0 points.
-  for (const p of players) {
-    if (p.left || p.activeFromRace > room.raceIndex || p.place !== null) continue;
+  for (const p of inRace) {
+    if (p.left || hasFinished(p)) continue;
     await ctx.db.insert("results", {
       roomId: room._id,
       raceIndex: room.raceIndex,
@@ -132,7 +179,7 @@ async function endRaceIfEveryoneFinished(ctx, roomId) {
   if (!room || room.status !== "racing") return;
   const players = await roomPlayers(ctx, roomId);
   const racers = racersFor(room, players, Date.now());
-  if (racers.length > 0 && racers.every((p) => p.place !== null)) {
+  if (racers.length > 0 && racers.every(hasFinished)) {
     await endRace(ctx, room);
   }
 }
@@ -171,6 +218,7 @@ export const getRoom = query({
         seasonSetting: room.seasonSetting,
         texts: room.texts,
         raceIndex: room.raceIndex,
+        lightsAt: room.lightsAt || room.startAt,
         startAt: room.startAt,
         deadline: room.deadline,
         hostPlayerId: host ? host._id : null,
@@ -188,6 +236,8 @@ export const getRoom = query({
           place: p.place,
           raceWpm: p.raceWpm,
           raceAccuracy: p.raceAccuracy,
+          raceTimeMs: hasFinished(p) ? p.raceTimeMs : null,
+          raceScore: hasFinished(p) ? scoreKey(p) / 100 : null,
           activeFromRace: p.activeFromRace,
           lastSeen: p.lastSeen,
         })),
@@ -200,6 +250,7 @@ export const getRoom = query({
         wpm: r.wpm,
         accuracy: r.accuracy,
         timeMs: r.timeMs,
+        score: r.score === undefined ? null : r.score,
       })),
     };
   },
@@ -378,7 +429,7 @@ export const reportProgress = mutation({
     const room = await requireRoom(ctx, args.roomId);
     if (room.status !== "racing") return;
     const player = await requirePlayer(ctx, args.roomId, args.playerKey);
-    if (player.place !== null || player.activeFromRace > room.raceIndex) return;
+    if (hasFinished(player) || player.activeFromRace > room.raceIndex) return;
     const now = Date.now();
     await ctx.db.patch(player._id, {
       progress: Math.min(1, Math.max(0, args.progress)),
@@ -403,7 +454,9 @@ export const finishRace = mutation({
     }
     const player = await requirePlayer(ctx, args.roomId, args.playerKey);
     if (player.activeFromRace > room.raceIndex) throw new ConvexError("You join from the next race.");
-    if (player.place !== null) return { place: player.place, points: 0 };
+    if (hasFinished(player)) {
+      return { finished: true, wpm: player.raceWpm, accuracy: player.raceAccuracy, score: scoreKey(player) / 100 };
+    }
 
     const now = Date.now();
     const elapsedMs = Math.max(1, now - room.startAt);
@@ -415,32 +468,17 @@ export const finishRace = mutation({
     if (wpm > serverWpm * 1.25) wpm = Math.round(serverWpm);
     const accuracy = Math.min(100, Math.max(0, Math.round(args.accuracy)));
 
-    const players = await roomPlayers(ctx, room._id);
-    const place = players.filter((p) => p.place !== null).length + 1;
-    const points = POINTS[place - 1] || 0;
-
+    // Place and points are given out when the race ends (see endRace).
     await ctx.db.patch(player._id, {
-      place,
       progress: 1,
       wpm,
       raceWpm: wpm,
       raceAccuracy: accuracy,
-      points: player.points + points,
+      raceTimeMs: elapsedMs,
       lastSeen: now,
     });
-    await ctx.db.insert("results", {
-      roomId: room._id,
-      raceIndex: room.raceIndex,
-      playerId: player._id,
-      name: player.name,
-      place,
-      points,
-      wpm,
-      accuracy,
-      timeMs: elapsedMs,
-    });
     await endRaceIfEveryoneFinished(ctx, room._id);
-    return { place, points, wpm };
+    return { finished: true, wpm, accuracy, score: (wpm * accuracy) / 100 };
   },
 });
 

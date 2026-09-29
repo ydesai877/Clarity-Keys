@@ -17,7 +17,10 @@ export default defineSchema({
     seasonSetting: v.number(),
     texts: v.array(v.string()),
     raceIndex: v.number(),
-    // Server time (ms) when the current race's countdown ends.
+    // Server time (ms) when the first of the five start lights comes on.
+    // Optional so rooms created before the lights existed still load.
+    lightsAt: v.optional(v.number()),
+    // Server time (ms) when the lights go out and the race starts.
     startAt: v.number(),
     // Server time (ms) when the current race ends even if not everyone finished.
     deadline: v.number(),
@@ -34,6 +37,8 @@ export default defineSchema({
     place: v.union(v.number(), v.null()),
     raceWpm: v.union(v.number(), v.null()),
     raceAccuracy: v.union(v.number(), v.null()),
+    // Server-measured finish time for the current race; null until finished.
+    raceTimeMs: v.optional(v.union(v.number(), v.null())),
     // A player who joins mid-race sits that race out and starts with the next one.
     activeFromRace: v.number(),
     lastSeen: v.number(),
@@ -54,5 +59,7 @@ export default defineSchema({
     wpm: v.number(),
     accuracy: v.union(v.number(), v.null()),
     timeMs: v.union(v.number(), v.null()),
+    // WPM × accuracy, e.g. 60 WPM at 80% = 48. Optional for older rows.
+    score: v.optional(v.union(v.number(), v.null())),
   }).index("by_room", ["roomId"]),
 });

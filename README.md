@@ -83,12 +83,24 @@ to upload the new server code, then commit and push as usual.
    to 24 races. Its last stop, **All**, races every affirmation in the
    category once, in random order.
 3. The host clicks **Start season**. Everyone gets the same affirmation and a
-   synced 3-2-1 countdown. Each player's bar moves as they type. You only
-   move forward while your text is correct.
-4. Points per race: 1st = 3, 2nd = 2, 3rd = 1, everyone else 0. If you do not
-   finish before the time limit (at least 30 seconds, longer for long
-   affirmations), you get 0 for that race.
-5. Between races, standings show. The host clicks **Next race** or presses
+   Formula 1 start: five red lights come on one per second, then all go out
+   after a random 0.2–3 second wait. Lights out is the start, and typing
+   unlocks at that moment for everyone.
+4. Each player has a car on the track. It moves as you type correct text, so
+   a faster typist's car moves faster. Speed lines and wheel spin grow with
+   your WPM.
+5. **Race score = WPM × accuracy.** For example, 60 WPM at 80% = 48.0, and
+   80 WPM at 60% = 48.0. The highest score wins the race, not the first to
+   finish. On a tie, the faster time wins. Places are decided when everyone
+   has finished or the time limit ends (at least 30 seconds, longer for long
+   affirmations). If you don't finish, you get 0 for that race.
+6. Points per race: 1st = 3, 2nd = 2, 3rd = 1, everyone else 0.
+7. The race winner sees a winner's card with a famous F1 team-radio line. If
+   you win after losing 3 or more races in a row, you get the special
+   "About time, huh?" line instead. Your losing streak is counted on your
+   device and carries across rooms and seasons. Press Enter, Escape or
+   Close to dismiss the card.
+8. Between races, standings show. The host clicks **Next race** or presses
    Enter. After the last race, the season champion is shown. The host can
    change the settings and start a new season.
 

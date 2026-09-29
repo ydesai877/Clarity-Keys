@@ -10,6 +10,22 @@
   const PROGRESS_INTERVAL_MS = 250; // at most 4 progress updates per second
   const HEARTBEAT_MS = 5000;
   const STALE_MS = 20000;
+  const STREAK_STORE = "clarity-keys-loss-streak-v1";
+  const CELEBRATION_MS = 10000;
+  const CAR_COLORS = ["#e0466b", "#2fae66", "#e0946c", "#3aa7c9", "#c9a23a", "#d06bd6"];
+
+  // Shown to the race winner. One is picked at random.
+  const WIN_QUOTES = [
+    "Mamma mia, mamma mia!... It's just incredible. Grazie mille a tutti!",
+    "That's all for the kids out there who dream the impossible. You can do it too, man. I believe in you guys.",
+    "Si, Ragazzi! Grazie mille, grazie, grazie! Dai Forza Ferrari!",
+    "What did we just do? What did we just do? We won the race! Oh my God, guys!",
+    "F**king finally. Thank you, guys.",
+    "Smoooth Operatooor!... Imma smooth operaatooorr.. Yeah, baby! Yeah!",
+  ];
+  // Shown instead when you win after losing 3 or more races in a row.
+  const COMEBACK_QUOTE = "Woohoo! I love you all. Thank you so much! We did it!... About time, huh?";
+  const COMEBACK_AFTER = 3;
 
   const $ = (id) => document.getElementById(id);
   const el = {
@@ -37,6 +53,10 @@
     end: $("race-end"),
     leave: $("race-leave"),
     error: $("race-error"),
+    celebration: $("celebration"),
+    celebrationTitle: $("celebration-title"),
+    celebrationQuote: $("celebration-quote"),
+    celebrationClose: $("celebration-close"),
   };
 
   const app = window.ClarityApp;
@@ -51,6 +71,10 @@
   let state = null;
   let clockOffset = 0; // server time minus local time, in ms
   let loadedRace = null; // "raceIndex:startAt" currently in the typing card
+  let resolvedRace = null; // the last race whose result was handled (streak, quote)
+  let celebrationTimer = null;
+  const lanes = new Map(); // player id -> lane elements, reused so cars animate
+  const myLive = { progress: 0, wpm: 0 }; // your own car moves from local typing, not the server
   let heartbeatTimer = null;
   let settingsTimer = null;
   let errorTimer = null;
@@ -256,6 +280,10 @@
     me.code = null;
     state = null;
     loadedRace = null;
+    resolvedRace = null;
+    lanes.clear();
+    el.players.replaceChildren();
+    hideCelebration();
     storageSet(sessionStorage, ROOM_STORE, null);
     history.replaceState(null, "", location.pathname);
     el.room.classList.add("hidden");
@@ -283,6 +311,10 @@
   // ---------- Sending progress ----------
 
   function queueProgress(progress, wpm) {
+    myLive.progress = progress;
+    myLive.wpm = wpm;
+    const lane = lanes.get(me.playerId);
+    if (lane) placeCar(lane, progress, wpm, true);
     sender.latest = { progress, wpm };
     if (sender.timer || sender.inFlight) return;
     const wait = Math.max(0, PROGRESS_INTERVAL_MS - (Date.now() - sender.lastSent));
@@ -308,7 +340,7 @@
     clearTimeout(sender.timer);
     sender.timer = null;
     sender.latest = null;
-    app.setResultMessage("Finished! Checking your place…");
+    app.setResultMessage("Finished! Saving your time…");
     call(api.race.finishRace, {
       roomId: me.roomId,
       playerKey: me.key,
@@ -316,12 +348,66 @@
       wpm: result.wpm,
       accuracy: result.accuracy,
     })
-      .then((res) => app.setResultMessage(placeMessage(res.place, res.points)))
+      .then((res) => {
+        if (state && state.room.status === "racing") app.setResultMessage(waitingMessage(res.score));
+      })
       .catch((err) => app.setResultMessage("Finished, but " + errorMessage(err).toLowerCase()));
   }
 
-  function placeMessage(place, points) {
-    return ordinal(place) + " place · +" + points + (points === 1 ? " pt" : " pts");
+  function fmtScore(score) {
+    return (Math.round(score * 10) / 10).toFixed(1);
+  }
+
+  function waitingMessage(score) {
+    return "Finished · score " + fmtScore(score) + ". Waiting for the others…";
+  }
+
+  function placeMessage(place, points, score) {
+    return (
+      ordinal(place) + " place · score " + fmtScore(score) + " · +" + points + (points === 1 ? " pt" : " pts")
+    );
+  }
+
+  // ---------- Winner celebration and losing streak ----------
+
+  function loadStreak() {
+    const n = Number(storageGet(localStorage, STREAK_STORE));
+    return Number.isFinite(n) && n > 0 ? n : 0;
+  }
+
+  // Called once per race you took part in, after places are final.
+  function recordRaceOutcome(won, raceNumber) {
+    const streak = loadStreak();
+    if (won) {
+      storageSet(localStorage, STREAK_STORE, "0");
+      showCelebration(raceNumber, streak >= COMEBACK_AFTER ? streak : 0);
+    } else {
+      storageSet(localStorage, STREAK_STORE, String(streak + 1));
+    }
+  }
+
+  // `comebackAfter` is the number of races lost in a row before this win (0 if under 3).
+  function showCelebration(raceNumber, comebackAfter) {
+    const comeback = comebackAfter > 0;
+    el.celebrationTitle.textContent = comeback
+      ? "P1! You won race " + raceNumber + " after " + comebackAfter + " races without a win."
+      : "P1! You won race " + raceNumber + ".";
+    el.celebrationQuote.textContent = comeback
+      ? COMEBACK_QUOTE
+      : WIN_QUOTES[Math.floor(Math.random() * WIN_QUOTES.length)];
+    el.celebration.classList.remove("hidden");
+    clearTimeout(celebrationTimer);
+    celebrationTimer = setTimeout(hideCelebration, CELEBRATION_MS);
+    el.celebrationClose.focus();
+  }
+
+  function hideCelebration() {
+    clearTimeout(celebrationTimer);
+    el.celebration.classList.add("hidden");
+  }
+
+  function isCelebrating() {
+    return !el.celebration.classList.contains("hidden");
   }
 
   // ---------- Settings (host) ----------
@@ -422,9 +508,12 @@
     return serverNow() - p.lastSeen < STALE_MS;
   }
 
-  function pointsThisRace(playerId, raceIndex) {
-    const r = state.results.find((x) => x.playerId === playerId && x.raceIndex === raceIndex);
-    return r ? r.points : 0;
+  function resultFor(playerId, raceIndex) {
+    return state.results.find((x) => x.playerId === playerId && x.raceIndex === raceIndex) || null;
+  }
+
+  function finishedRace(p) {
+    return p.raceTimeMs !== null && p.raceTimeMs !== undefined;
   }
 
   // Loads each new race into the typing card, and reports the result.
@@ -436,27 +525,33 @@
       const key = room.raceIndex + ":" + room.startAt;
       if (key !== loadedRace) {
         loadedRace = key;
+        myLive.progress = 0;
+        myLive.wpm = 0;
         const raceIndex = room.raceIndex;
         app.beginExternalRound(room.texts[raceIndex], {
           label: "Race " + (raceIndex + 1) + " of " + room.texts.length,
+          lightsAtLocal: room.lightsAt - clockOffset,
           startAtLocal: room.startAt - clockOffset,
           onProgress: queueProgress,
           onFinish: (result) => sendFinish(raceIndex, result),
         });
         if (spectating) app.stopExternalRound("You join from the next race. Watch this one!");
       }
-      if (mine.place !== null) {
-        app.setResultMessage(placeMessage(mine.place, pointsThisRace(mine._id, room.raceIndex)));
-      }
+      if (finishedRace(mine)) app.setResultMessage(waitingMessage(mine.raceScore));
       return;
     }
 
     if (room.status === "between" || room.status === "finished") {
       if (loadedRace && !spectating) {
-        if (mine.place !== null) {
-          app.setResultMessage(placeMessage(mine.place, pointsThisRace(mine._id, room.raceIndex)));
+        const result = resultFor(mine._id, room.raceIndex);
+        if (mine.place !== null && result) {
+          app.setResultMessage(placeMessage(mine.place, result.points, result.score || 0));
         } else {
           app.stopExternalRound("Race over. You did not finish this one.");
+        }
+        if (resolvedRace !== loadedRace) {
+          resolvedRace = loadedRace;
+          recordRaceOutcome(mine.place === 1, room.raceIndex + 1);
         }
       }
       return;
@@ -477,12 +572,15 @@
           : "Waiting for " + hostName + " to start the season.";
       case "racing":
         return serverNow() < room.startAt
-          ? "Race " + (room.raceIndex + 1) + " of " + n + " starts in a moment…"
-          : "Race " + (room.raceIndex + 1) + " of " + n + " — go!";
-      case "between":
+          ? "Race " + (room.raceIndex + 1) + " of " + n + ": watch the lights…"
+          : "Race " + (room.raceIndex + 1) + " of " + n + ": go! Score = WPM × accuracy.";
+      case "between": {
+        const win = state.results.find((r) => r.raceIndex === room.raceIndex && r.place === 1);
+        const won = win ? " Won by " + win.name + " (score " + fmtScore(win.score || 0) + ")." : " Nobody finished.";
         return isHost()
-          ? "Race " + (room.raceIndex + 1) + " of " + n + " done. Press Next race (or Enter) when ready."
-          : "Race " + (room.raceIndex + 1) + " of " + n + " done. Waiting for " + hostName + " to start the next one.";
+          ? "Race " + (room.raceIndex + 1) + " of " + n + " done." + won + " Press Next race (or Enter)."
+          : "Race " + (room.raceIndex + 1) + " of " + n + " done." + won + " Waiting for " + hostName + ".";
+      }
       case "finished":
         return isHost()
           ? "Season over! Change the settings if you like, then start a new season."
@@ -527,42 +625,106 @@
     document.body.classList.toggle("race-no-typing", !showTyping);
   }
 
+  const CAR_SVG =
+    '<svg viewBox="0 0 56 22" width="56" height="22" aria-hidden="true">' +
+    '<rect x="0" y="2" width="9" height="3" rx="1" fill="currentColor"/>' +
+    '<rect x="2" y="4" width="3" height="9" fill="#1c1a24"/>' +
+    '<path d="M5 12 L15 10 L24 9 L29 6 L35 6 L38 9 L48 11 L55 13 L55 16 L5 16 Z" fill="currentColor"/>' +
+    '<path d="M28.5 9 L31 6.6 L34 6.6 L35.5 9 Z" fill="#1c1a24" opacity="0.75"/>' +
+    '<rect x="47" y="15" width="9" height="2.5" rx="1" fill="currentColor"/>' +
+    '<g class="wheel"><circle cx="13" cy="16" r="5.5" fill="#1c1a24"/><rect x="12" y="11.5" width="2" height="9" fill="#6b6780"/></g>' +
+    '<g class="wheel"><circle cx="44" cy="16.5" r="5" fill="#1c1a24"/><rect x="43" y="12.5" width="2" height="8" fill="#6b6780"/></g>' +
+    "</svg>";
+
+  function makeLane() {
+    const li = node("li", "race-player");
+    const top = node("div", "rp-top");
+    const name = node("span", "rp-name");
+    const meta = node("span", "rp-meta");
+    top.append(name, meta);
+    const track = node("div", "lane-track");
+    const car = node("div", "lane-car");
+    const lines = node("span", "speed-lines");
+    car.appendChild(lines);
+    car.insertAdjacentHTML("beforeend", CAR_SVG); // fixed markup, no user text
+    track.append(car, node("span", "finish-line"));
+    li.append(top, track);
+    return { li, name, meta, track, car, lines, colorIndex: 0 };
+  }
+
+  // Position = share of the text typed correctly, so a faster typist's car
+  // moves faster. Speed lines and wheel spin also scale with WPM.
+  function placeCar(lane, progress, wpm, moving) {
+    const p = Math.min(1, Math.max(0, progress || 0));
+    // Jump (no slide) when a new race puts the car back at the start line.
+    const back = lane.p !== undefined && p < lane.p - 0.05;
+    if (back) lane.car.style.transition = "none";
+    lane.car.style.left = "calc((100% - 64px) * " + p.toFixed(4) + ")";
+    if (back) {
+      void lane.car.offsetWidth;
+      lane.car.style.transition = "";
+    }
+    lane.p = p;
+    const speed = moving ? Math.min(1, (wpm || 0) / 120) : 0;
+    lane.car.style.setProperty("--speed", speed.toFixed(2));
+    lane.car.classList.toggle("moving", moving && speed > 0.02);
+    lane.car.style.setProperty("--spin", (0.9 - 0.75 * speed).toFixed(2) + "s");
+  }
+
   function renderPlayers(mine, seasonStarted) {
     const room = state.room;
-    el.players.replaceChildren();
-    state.players.forEach((p) => {
-      const li = node("li", "race-player");
-      if (p._id === me.playerId) li.classList.add("me");
-      if (!isConnected(p)) li.classList.add("offline");
+    const racing = room.status === "racing" && serverNow() >= room.startAt;
+    const seen = new Set();
 
-      const top = node("div", "rp-top");
-      const name = node("span", "rp-name", p.name);
-      if (p._id === me.playerId) name.appendChild(node("span", "rp-tag", "you"));
-      if (p._id === room.hostPlayerId) name.appendChild(node("span", "rp-tag", "host"));
-      if (!isConnected(p)) name.appendChild(node("span", "rp-tag", "offline"));
-      top.appendChild(name);
+    state.players.forEach((p, index) => {
+      seen.add(p._id);
+      let lane = lanes.get(p._id);
+      if (!lane) {
+        lane = makeLane();
+        lanes.set(p._id, lane);
+      }
+      if (el.players.children[index] !== lane.li) el.players.insertBefore(lane.li, el.players.children[index] || null);
+
+      const isMe = p._id === me.playerId;
+      lane.li.classList.toggle("me", isMe);
+      lane.li.classList.toggle("offline", !isConnected(p));
+      lane.li.classList.toggle("no-track", !seasonStarted);
+      lane.car.style.color = isMe ? "var(--accent)" : CAR_COLORS[index % CAR_COLORS.length];
+
+      lane.name.replaceChildren(document.createTextNode(p.name)); // text only, never HTML
+      if (isMe) lane.name.appendChild(node("span", "rp-tag", "you"));
+      if (p._id === room.hostPlayerId) lane.name.appendChild(node("span", "rp-tag", "host"));
+      if (!isConnected(p)) lane.name.appendChild(node("span", "rp-tag", "offline"));
 
       let meta = "";
       if (seasonStarted) {
-        if (p.activeFromRace > room.raceIndex) meta = "joins next race";
-        else if (p.place !== null) meta = ordinal(p.place) + " · " + p.raceWpm + " WPM";
-        else if (room.status === "racing") meta = p.wpm + " WPM";
-        else meta = "did not finish";
-        meta += " · " + p.points + (p.points === 1 ? " pt" : " pts");
+        const pts = " · " + p.points + (p.points === 1 ? " pt" : " pts");
+        if (p.activeFromRace > room.raceIndex) meta = "joins next race" + pts;
+        else if (room.status === "racing") {
+          meta = finishedRace(p) ? "Finished · score " + fmtScore(p.raceScore) : (isMe ? myLive.wpm : p.wpm) + " WPM";
+          meta += pts;
+        } else if (p.place !== null) {
+          meta = ordinal(p.place) + " · score " + fmtScore(p.raceScore || 0) + pts;
+        } else meta = "did not finish" + pts;
       }
-      top.appendChild(node("span", "rp-meta", meta));
-      li.appendChild(top);
+      lane.meta.textContent = meta;
 
       if (seasonStarted) {
-        const bar = node("div", "rp-bar");
-        const fill = node("div", "rp-fill");
-        fill.style.width = Math.round(Math.min(1, Math.max(0, p.progress)) * 100) + "%";
-        if (p.place !== null) fill.classList.add("done");
-        bar.appendChild(fill);
-        li.appendChild(bar);
+        const done = finishedRace(p) || p.place !== null;
+        const useLocal = isMe && room.status === "racing" && !done;
+        const progress = done ? 1 : useLocal ? Math.max(myLive.progress, p.progress) : p.progress;
+        const wpm = useLocal ? myLive.wpm : p.wpm;
+        placeCar(lane, progress, wpm, racing && !done);
+        lane.li.classList.toggle("done", done);
       }
-      el.players.appendChild(li);
     });
+
+    for (const [id, lane] of lanes) {
+      if (!seen.has(id)) {
+        lane.li.remove();
+        lanes.delete(id);
+      }
+    }
   }
 
   function renderStandings() {
@@ -574,10 +736,11 @@
     const rows = state.players.map((p) => {
       const mine = state.results.filter((r) => r.playerId === p._id && r.place !== null);
       const avg = mine.length ? Math.round(mine.reduce((a, r) => a + r.wpm, 0) / mine.length) : 0;
+      const avgScore = mine.length ? mine.reduce((a, r) => a + (r.score || 0), 0) / mine.length : 0;
       const wins = mine.filter((r) => r.place === 1).length;
-      return { p, avg, wins };
+      return { p, avg, avgScore, wins };
     });
-    rows.sort((a, b) => b.p.points - a.p.points || b.wins - a.wins || b.avg - a.avg);
+    rows.sort((a, b) => b.p.points - a.p.points || b.wins - a.wins || b.avgScore - a.avgScore);
 
     el.standings.replaceChildren();
     if (room.status === "finished" && rows.length) {
@@ -592,11 +755,18 @@
 
     const table = node("table", "race-table");
     const head = node("tr");
-    ["#", "Name", "Points", "Wins", "Avg WPM"].forEach((h) => head.appendChild(node("th", "", h)));
+    ["#", "Name", "Points", "Wins", "Avg score", "Avg WPM"].forEach((h) => head.appendChild(node("th", "", h)));
     table.appendChild(head);
     rows.forEach((r, i) => {
       const tr = node("tr", r.p._id === me.playerId ? "me" : "");
-      [String(i + 1), r.p.name, String(r.p.points), String(r.wins), r.avg ? String(r.avg) : "—"].forEach((c) =>
+      [
+        String(i + 1),
+        r.p.name,
+        String(r.p.points),
+        String(r.wins),
+        r.avgScore ? fmtScore(r.avgScore) : "—",
+        r.avg ? String(r.avg) : "—",
+      ].forEach((c) =>
         tr.appendChild(node("td", "", c))
       );
       table.appendChild(tr);
@@ -641,6 +811,24 @@
     if (navigator.clipboard) navigator.clipboard.writeText(link).then(done, () => showError("Copy failed. Link: " + link));
     else showError("Invite link: " + link);
   });
+
+  el.celebrationClose.addEventListener("click", hideCelebration);
+  el.celebration.addEventListener("click", (e) => {
+    if (e.target === el.celebration) hideCelebration();
+  });
+
+  // Enter or Escape closes the winner card first.
+  document.addEventListener(
+    "keydown",
+    (e) => {
+      if ((e.key === "Enter" || e.key === "Escape") && isCelebrating()) {
+        e.preventDefault();
+        e.stopImmediatePropagation();
+        hideCelebration();
+      }
+    },
+    true
+  );
 
   // Host shortcut: Enter starts the next race between races.
   document.addEventListener("keydown", (e) => {

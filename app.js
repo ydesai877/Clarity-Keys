@@ -16,6 +16,8 @@
   const typingInput = document.getElementById("typing-input");
   const categoryTag = document.getElementById("category-tag");
   const tapHint = document.getElementById("tap-hint");
+  const f1Lights = document.getElementById("f1-lights");
+  const f1LightPods = f1Lights.querySelectorAll(".f1-light");
 
   const statWpm = document.getElementById("stat-wpm");
   const statAccuracy = document.getElementById("stat-accuracy");
@@ -740,6 +742,16 @@
     countdownTimer = null;
   }
 
+  function setLights(count) {
+    f1LightPods.forEach((pod, i) => pod.classList.toggle("on", i < count));
+  }
+
+  function hideLights() {
+    f1Lights.classList.add("hidden");
+    f1Lights.classList.remove("out");
+    setLights(0);
+  }
+
   // Lets race.js drive the typing card with a shared text and start time.
   window.ClarityApp = {
     categories() {
@@ -769,21 +781,35 @@
       typingInput.disabled = true;
       tapHint.classList.remove("hidden");
 
+      // Formula 1 start: five red lights come on one per second from
+      // `lightsAtLocal`. They all go out at `startAtLocal` (after a random
+      // hold chosen by the server), and that is the start.
+      const lightsAt = typeof opts.lightsAtLocal === "number" ? opts.lightsAtLocal : opts.startAtLocal - 5000;
+      f1Lights.classList.remove("hidden", "out");
+      setLights(0);
+
       const update = () => {
-        const left = opts.startAtLocal - Date.now();
-        if (left > 0) {
-          tapHint.textContent = "Starting in " + Math.ceil(left / 1000) + "…";
+        const now = Date.now();
+        if (now < opts.startAtLocal) {
+          const lit = now < lightsAt ? 0 : Math.min(5, Math.floor((now - lightsAt) / 1000) + 1);
+          setLights(lit);
+          tapHint.textContent = lit === 0 ? "Get ready…" : lit < 5 ? "Watch the lights…" : "Wait for lights out…";
           return;
         }
         stopCountdown();
-        tapHint.textContent = "Go! Type now.";
+        setLights(0);
+        f1Lights.classList.add("out");
+        setTimeout(() => {
+          if (f1Lights.classList.contains("out")) f1Lights.classList.add("hidden");
+        }, 1500);
+        tapHint.textContent = "Lights out and away we go!";
         typingInput.disabled = false;
         typingInput.focus();
         startTime = opts.startAtLocal;
         timerId = setInterval(tick, 250);
       };
       update();
-      if (typingInput.disabled) countdownTimer = setInterval(update, 100);
+      if (typingInput.disabled) countdownTimer = setInterval(update, 50);
     },
     // Shows a message on the finished card, e.g. "2nd place · +2 pts".
     setResultMessage(message) {
@@ -793,6 +819,7 @@
     stopExternalRound(message) {
       if (!external || finished) return;
       stopCountdown();
+      hideLights();
       clearInterval(timerId);
       finished = true;
       typingInput.disabled = true;
@@ -802,6 +829,7 @@
     // Back to solo practice.
     endExternalMode() {
       stopCountdown();
+      hideLights();
       external = null;
       tapHint.textContent = "Tap here and start typing…";
       resultHeading.textContent = "Nicely typed.";

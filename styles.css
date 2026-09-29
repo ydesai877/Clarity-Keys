@@ -623,24 +623,167 @@ button:disabled { opacity: 0.55; cursor: default; }
 
 .rp-meta { color: var(--text-soft); font-size: 13px; white-space: nowrap; }
 
-.rp-bar {
-  height: 10px;
-  border-radius: 999px;
-  background: var(--bg-2);
+/* ---------- Race track ---------- */
+
+.race-player.no-track .lane-track { display: none; }
+
+.lane-track {
+  position: relative;
+  height: 34px;
+  border-radius: 8px;
+  background:
+    linear-gradient(90deg, var(--border) 50%, transparent 0) 0 50% / 18px 2px repeat-x,
+    var(--bg-2);
   overflow: hidden;
 }
 
-.rp-fill {
+.finish-line {
+  position: absolute;
+  top: 0;
+  right: 0;
+  width: 10px;
   height: 100%;
-  width: 0;
-  background: color-mix(in srgb, var(--accent) 45%, var(--pending));
-  border-radius: 999px;
-  transition: width 0.25s linear;
+  background: repeating-conic-gradient(#f1eefc 0 25%, #1c1a24 0 50%) 0 0 / 10px 10px;
+  opacity: 0.8;
 }
 
-.race-player.me .rp-fill { background: var(--accent); }
-.rp-fill.done { background: var(--correct); }
-.race-player.me .rp-fill.done { background: var(--correct); }
+.lane-car {
+  position: absolute;
+  top: 6px;
+  left: 0;
+  width: 56px;
+  height: 22px;
+  transition: left 0.3s linear;
+  --speed: 0;
+  --spin: 0.9s;
+}
+
+.lane-car svg { display: block; position: relative; }
+
+.speed-lines {
+  position: absolute;
+  top: 5px;
+  right: 100%;
+  width: calc(4px + 34px * var(--speed));
+  height: 12px;
+  opacity: 0;
+  background:
+    linear-gradient(currentColor, currentColor) 0 2px / 100% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 30% 6px / 70% 2px no-repeat,
+    linear-gradient(currentColor, currentColor) 10% 10px / 90% 2px no-repeat;
+  transition: width 0.3s linear, opacity 0.3s linear;
+}
+
+.lane-car.moving .speed-lines { opacity: calc(0.25 + 0.5 * var(--speed)); }
+
+.lane-car .wheel { transform-box: fill-box; transform-origin: center; }
+.lane-car.moving .wheel { animation: wheel-spin var(--spin) linear infinite; }
+
+@keyframes wheel-spin { to { transform: rotate(360deg); } }
+
+.race-player.done .rp-meta { color: var(--correct); }
+
+@media (prefers-reduced-motion: reduce) {
+  .lane-car, .speed-lines { transition: none; }
+  .lane-car.moving .wheel { animation: none; }
+}
+
+/* ---------- F1 start lights ---------- */
+
+.f1-lights {
+  display: flex;
+  justify-content: center;
+  gap: 10px;
+  margin: 0 auto 16px;
+  padding: 10px 14px;
+  width: max-content;
+  background: #111018;
+  border-radius: 12px;
+  box-shadow: inset 0 0 0 2px #2a2735;
+  transition: opacity 0.6s ease;
+}
+
+.f1-lights.out { opacity: 0.35; }
+
+.f1-light {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+  padding: 6px;
+  background: #1c1a24;
+  border-radius: 8px;
+}
+
+.f1-light i {
+  display: block;
+  width: 22px;
+  height: 22px;
+  border-radius: 50%;
+  background: #3a1c22;
+}
+
+.f1-light.on i {
+  background: #ff2438;
+  box-shadow: 0 0 12px 3px rgba(255, 36, 56, 0.7);
+}
+
+/* ---------- Winner celebration ---------- */
+
+.celebration {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  padding: 16px;
+  background: rgba(10, 8, 20, 0.6);
+  backdrop-filter: blur(3px);
+}
+
+.celebration.hidden { display: none; }
+
+.celebration-card {
+  max-width: 520px;
+  width: 100%;
+  background: var(--card-bg);
+  border: 1px solid var(--border);
+  border-radius: 18px;
+  box-shadow: var(--shadow);
+  overflow: hidden;
+  text-align: center;
+  padding-bottom: 20px;
+  animation: pop-in 0.35s ease-out;
+}
+
+.checkered {
+  height: 18px;
+  background: repeating-conic-gradient(#f1eefc 0 25%, #1c1a24 0 50%) 0 0 / 18px 18px;
+}
+
+.celebration-title {
+  margin: 18px 20px 6px;
+  font-size: 14px;
+  font-weight: 700;
+  text-transform: uppercase;
+  letter-spacing: 0.06em;
+  color: var(--accent-dark);
+}
+
+.celebration-quote {
+  margin: 0 24px 18px;
+  font-size: clamp(18px, 4vw, 24px);
+  font-style: italic;
+  line-height: 1.5;
+}
+
+.celebration-quote::before { content: "\201C"; }
+.celebration-quote::after { content: "\201D"; }
+
+@keyframes pop-in {
+  from { transform: scale(0.9); opacity: 0; }
+  to { transform: scale(1); opacity: 1; }
+}
 
 .race-standings { margin-bottom: 14px; }
 

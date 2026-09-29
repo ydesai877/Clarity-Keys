@@ -96,6 +96,13 @@
     </section>
 
     <main class="typing-card" id="typing-card">
+      <div class="f1-lights hidden" id="f1-lights" aria-hidden="true">
+        <span class="f1-light"><i></i><i></i></span>
+        <span class="f1-light"><i></i><i></i></span>
+        <span class="f1-light"><i></i><i></i></span>
+        <span class="f1-light"><i></i><i></i></span>
+        <span class="f1-light"><i></i><i></i></span>
+      </div>
       <p class="category-tag" id="category-tag">Morning Affirmation</p>
       <div class="target-text" id="target-text"></div>
       <p class="tap-hint" id="tap-hint">Tap here and start typing…</p>
@@ -143,6 +150,15 @@
         </div>
       </div>
     </section>
+
+    <div class="celebration hidden" id="celebration" role="dialog" aria-modal="true" aria-labelledby="celebration-title">
+      <div class="celebration-card">
+        <div class="checkered" aria-hidden="true"></div>
+        <p class="celebration-title" id="celebration-title">P1! You won the race.</p>
+        <blockquote class="celebration-quote" id="celebration-quote"></blockquote>
+        <button type="button" id="celebration-close" class="primary-btn">Close</button>
+      </div>
+    </div>
 
     <footer class="app-footer">
       <p>Edit <code>affirmations.js</code> to change what you practice.</p>
