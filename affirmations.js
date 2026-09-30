@@ -223,6 +223,10 @@ const AFFIRMATIONS = [
     category: "Useful",
     text:"Peace \nI am a peaceful soul... Irrespective of whatever the situation may be... I remain calm, easy and peaceful... I always choose peace... I am stable in every situation... with every kind of behaviour."
   }, 
+  {
+    category: "Useful",
+    text: "I am obessed with improvements."
+  },
     {
     category: "SICOA",
     text: "I serve with accountability, I live up to commitments and own the results"
