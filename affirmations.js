@@ -257,6 +257,18 @@ const AFFIRMATIONS = [
    },
   {
     category: "Useful",
-    text: "i believe in results that comes from my action"
+    text: "I believe in results that comes from my action"
+  },
+  {
+    category: "Useful",
+    text: "Be you, See you, For you"
+  },
+  {
+    category: "Useful",
+    text: "I acheive whatever I choose to."
+  },
+  {
+    category: "Useful",
+    text: "I am a content and joyful person."
   }
 ];
