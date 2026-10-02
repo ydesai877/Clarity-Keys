@@ -270,5 +270,86 @@ const AFFIRMATIONS = [
   {
     category: "Useful",
     text: "I am a content and joyful person."
-  }
+  },
+  {
+    category: "Charisma",
+    text: "People already know me, I dont need to audition."
+  },
+  {
+    category: "Charisma",
+    text: "I have an open posture and I take up space."
+  },
+  {
+    category: "Charisma",
+    text: "I speak up about my passion"
+  },
+  {
+    category: "Charisma",
+    text: "I address people's higher seld and values to influence and win them over."
+  },
+  {
+    category: "Charisma",
+    text: "I use happy memories to encourage myself to smile more."
+  },
+  {
+    category: "Charisma",
+    text: "I show people I am paying attention by remembering conversation details and never interrupt to put them at ease."
+  },
+  {
+    category: "Charisma",
+    text: "I express gratitude rathen than critize and judge to appear more optimistic."
+  },
+  {
+    category: "Affability",
+    text: "I make people comfortable by making them feel listened and respected."
+  },
+  {
+    category: "Affability",
+    text: "I smile at people often, have loose claw, encourage myself to smile more, and am warm and genuine."
+  },
+  {
+    category: "Affability",
+    text: "I get along with anyone, pay attention to them, listen to them, show and value their perspective."
+  },
+  {
+    category: "Affability",
+    text: "I remember details, make a point of listening with care, remember facts and bring them up casually in later converstations, and I wait a few seconds after they finish to speak. "
+  },
+  {
+    category: "Affability",
+    text: "I am positive person, who is solution oriented, looks at bright side, is resilient, and self confident. I see good in myself and others."
+  },
+  {
+    category: "Affability",
+    text: "I see conversation as an opportunity to learn and connect, and challenges as an invitation to improve, that is I am curios."
+  },
+  {
+    category: "Influence",
+    text: "I am confident, believe in myself,communicate about things that I am passionate about."
+  },
+  {
+    category: "Influence",
+    text: "I keep my head high and smile."
+  },
+  {
+    category: "Influence",
+    text: "I have an open body language with sure, crisp, and clear voice."
+  },
+  {
+    category: "Influence",
+    text: "I greet everyone in this room confidently."
+  },
+  {
+    category: "Influence",
+    text: "I believe in myself and what i am saying."
+  },
+  {
+    category: "Influence",
+    text: "I speak with genuine enthusiasm and optimism."
+  },
+  {
+    category: "Influence",
+    text: ""
+  },
+  
 ];
